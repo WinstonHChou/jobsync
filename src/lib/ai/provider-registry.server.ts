@@ -11,6 +11,8 @@ export const PROVIDER_FACTORIES: Record<
   (credential: string, modelName: string) => any
 > = {
   openai: (apiKey, model) => createOpenAI({ apiKey })(model),
+  "openai-compatible": (baseURL, model) =>
+    createOpenAI({ apiKey: "", baseURL: baseURL }).chat(model),
   openrouter: (apiKey, model) =>
     createOpenAI({ apiKey, baseURL: "https://openrouter.ai/api/v1" })(model),
   deepseek: (apiKey, model) => createDeepSeek({ apiKey })(model),
@@ -36,6 +38,41 @@ export const PROVIDER_VERIFIERS: Record<
             : `OpenAI returned ${res.status}`,
       };
     return { success: true };
+  },
+
+  "openai-compatible": async (key) => {
+    const baseUrl = key.replace(/\/+$/, "");
+    try {
+      const res = await fetch(`${baseUrl}/models`, {
+        signal: AbortSignal.timeout(APP_CONSTANTS.AI_OLLAMA_LIST_TIMEOUT_MS),
+      });
+      if (!res.ok)
+        return {
+          success: false,
+          error: `Cannot connect to OpenAI-Compatible at ${baseUrl}`,
+        };
+      return { success: true };
+    } catch (error) {
+      if (error instanceof Error && error.name === "TimeoutError") {
+        return {
+          success: false,
+          error: `OpenAI-Compatible at ${baseUrl} did not respond in time. Please make sure it is running.`,
+        };
+      }
+      if (
+        error instanceof TypeError &&
+        /failed to parse url/i.test(error.message)
+      ) {
+        return {
+          success: false,
+          error: `Invalid OpenAI-Compatible URL: ${baseUrl}`,
+        };
+      }
+      return {
+        success: false,
+        error: `Cannot connect to OpenAI-Compatible at ${baseUrl}. Please make sure it is running.`,
+      };
+    }
   },
 
   openrouter: async (key) => {
