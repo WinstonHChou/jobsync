@@ -25,6 +25,7 @@ import {
   AttachPdfDialog,
   ClearChatBeforeReviewDialog,
   DiscardImportDialog,
+  PdfPreviewDialog,
 } from "./resume-container/ResumeDialogs";
 import { useResumeImport } from "./resume-container/useResumeImport";
 import { useResumePdfExport } from "./resume-container/useResumePdfExport";
@@ -59,6 +60,7 @@ function ResumeContainer({
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [showDiscardImportConfirm, setShowDiscardImportConfirm] =
     useState(false);
+  const [showPdfPreview, setShowPdfPreview] = useState(false);
 
   const {
     pendingCards,
@@ -195,6 +197,7 @@ function ResumeContainer({
         onReview={onReviewClick}
         onExport={() => setShowExportDialog(true)}
         onSetDefault={() => setSetDefaultConfirmOpen(true)}
+        onPreview={() => setShowPdfPreview(true)}
       />
 
       <DeleteAlertDialog
@@ -308,6 +311,14 @@ function ResumeContainer({
         open={showDiscardImportConfirm}
         onOpenChange={setShowDiscardImportConfirm}
         onConfirm={handleDiscardImport}
+      />
+
+      <PdfPreviewDialog
+        open={showPdfPreview}
+        onOpenChange={setShowPdfPreview}
+        filePath={resume.File?.filePath || ''}
+        fileName={resume.File?.fileName || 'resume.pdf'}
+        onDownload={() => window.open('/api/profile/resume?preview=true&filePath=' + encodeURIComponent(resume.File?.filePath || ''), '_blank')}
       />
     </>
   );

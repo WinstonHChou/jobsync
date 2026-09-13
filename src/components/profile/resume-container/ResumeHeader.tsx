@@ -1,6 +1,6 @@
 "use client";
 import type { RefObject } from "react";
-import { ArrowLeft, FileDown, MoreVertical, Sparkles, Star } from "lucide-react";
+import { ArrowLeft, Eye, FileDown, MoreVertical, Sparkles, Star } from "lucide-react";
 import type { Resume } from "@/models/profile.model";
 import {
   hasMinResumeSections,
@@ -25,6 +25,7 @@ export function ResumeHeader({
   resumeSectionRef,
   onBack,
   onReview,
+  onPreview,
   onExport,
   onSetDefault,
 }: {
@@ -34,6 +35,7 @@ export function ResumeHeader({
   resumeSectionRef: RefObject<AddResumeSectionRef | null>;
   onBack: () => void;
   onReview: () => void;
+  onPreview?: () => void;
   onExport: () => void;
   onSetDefault: () => void;
 }) {
@@ -71,6 +73,19 @@ export function ResumeHeader({
             Review
           </span>
         </Button>
+        {onPreview && (
+          <Button
+            className="h-8 gap-1 cursor-pointer"
+            onClick={onPreview}
+            size="sm"
+            variant="outline"
+          >
+            <Eye className="h-3.5 w-3.5" />
+            <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+              Preview PDF
+            </span>
+          </Button>
+        )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button size="sm" variant="outline">
