@@ -1,6 +1,7 @@
 "use client";
 import { Resume, ResumeSection, SectionType } from "@/models/profile.model";
-import { Card, CardHeader, CardTitle } from "../ui/card";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "../ui/card";
+import { Button } from "../ui/button";
 import { AddResumeSectionRef } from "./AddResumeSection";
 import ContactInfoCard from "./ContactInfoCard";
 import { useMemo, useRef, useState } from "react";
@@ -25,7 +26,6 @@ import {
   AttachPdfDialog,
   ClearChatBeforeReviewDialog,
   DiscardImportDialog,
-  PdfPreviewDialog,
 } from "./resume-container/ResumeDialogs";
 import { useResumeImport } from "./resume-container/useResumeImport";
 import { useResumePdfExport } from "./resume-container/useResumePdfExport";
@@ -58,9 +58,9 @@ function ResumeContainer({
   }, [resume.reviewData]);
   const resumeSectionRef = useRef<AddResumeSectionRef>(null);
   const [showExportDialog, setShowExportDialog] = useState(false);
+  const [showPdfInlinePreview, setShowPdfInlinePreview] = useState(false);
   const [showDiscardImportConfirm, setShowDiscardImportConfirm] =
     useState(false);
-  const [showPdfPreview, setShowPdfPreview] = useState(false);
 
   const {
     pendingCards,
@@ -197,7 +197,7 @@ function ResumeContainer({
         onReview={onReviewClick}
         onExport={() => setShowExportDialog(true)}
         onSetDefault={() => setSetDefaultConfirmOpen(true)}
-        onPreview={() => setShowPdfPreview(true)}
+        onPreview={() => setShowPdfInlinePreview(true)}
       />
 
       <DeleteAlertDialog
@@ -313,13 +313,56 @@ function ResumeContainer({
         onConfirm={handleDiscardImport}
       />
 
-      <PdfPreviewDialog
-        open={showPdfPreview}
-        onOpenChange={setShowPdfPreview}
-        filePath={resume.File?.filePath || ''}
-        fileName={resume.File?.fileName || 'resume.pdf'}
-        onDownload={() => window.open('/api/profile/resume?preview=true&filePath=' + encodeURIComponent(resume.File?.filePath || ''), '_blank')}
-      />
+      {/* INLINE PDF PREVIEW PANEL */}
+      {showPdfInlinePreview && resume.File?.filePath && (() => {
+        const filePath = resume.File.filePath;
+        const previewUrl = `/api/profile/resume?preview=true&filePath=${encodeURIComponent(filePath)}`;
+        const downloadUrl = `/api/profile/resume?filePath=${encodeURIComponent(filePath)}`;
+
+        return (
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
+                  <path d="M14 2v4a2 2 0 0 0 2 2h4" />
+                </svg>
+                PDF Preview
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <iframe
+                src={previewUrl}
+                className="h-[70vh] w-full border-0"
+                title="Resume PDF Preview"
+              />
+            </CardContent>
+            <CardFooter className="flex justify-end gap-2 border-t p-4 pt-0">
+              <Button variant="outline" onClick={() => setShowPdfInlinePreview(false)}>
+                Close Preview
+              </Button>
+              <Button
+                variant="default"
+                onClick={() => {
+                  window.open(downloadUrl, "_blank");
+                }}
+              >
+                Download
+              </Button>
+            </CardFooter>
+          </Card>
+        );
+      })()}
     </>
   );
 }
