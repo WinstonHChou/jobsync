@@ -13,10 +13,13 @@ export const WIKI_TYPES = [
 export const WIKI_FEATURES = [
   "setup",
   "jobs",
+  "contacts",
+  "companies",
   "automations",
   "profile",
   "ai",
   "tasks",
+  "activities",
   "questions",
   "mcp",
 ] as const;

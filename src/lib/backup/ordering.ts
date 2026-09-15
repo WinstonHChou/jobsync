@@ -26,6 +26,8 @@ export type BackupModel =
   | "Note"
   | "Interview"
   | "Contact"
+  | "ContactRole"
+  | "JobContact"
   | "Task"
   | "Activity"
   | "Question"
@@ -141,8 +143,28 @@ export const MODEL_SPECS: Record<BackupModel, ModelSpec> = {
   Contact: {
     delegate: "contact",
     owner: "createdBy",
-    fks: { interviewId: "Interview" },
+    fks: {
+      interviewId: "Interview",
+      companyId: "Company",
+      locationId: "Location",
+      workedAtCompanyId: "Company",
+      roleId: "ContactRole",
+    },
     scope: byCreatedBy,
+  },
+  // A lookup like every other (value, createdBy) reference table, so a restore
+  // into an account that already has the seeded roles does not double them.
+  ContactRole: {
+    delegate: "contactRole",
+    owner: "createdBy",
+    lookup: true,
+    fks: {},
+    scope: byCreatedBy,
+  },
+  JobContact: {
+    delegate: "jobContact",
+    fks: { jobId: "Job", contactId: "Contact", roleId: "ContactRole" },
+    scope: (userId) => ({ Job: { userId } }),
   },
   Task: {
     delegate: "task",
@@ -172,6 +194,7 @@ export const INSERT_ORDER: BackupModel[] = [
   "JobSource",
   "Tag",
   "ActivityType",
+  "ContactRole",
   "Profile",
   "File",
   "Resume",
@@ -189,6 +212,7 @@ export const INSERT_ORDER: BackupModel[] = [
   "Note",
   "Interview",
   "Contact",
+  "JobContact",
   "Task",
   "Activity",
   "Question",
@@ -212,6 +236,7 @@ export const EMPTINESS_MODELS: BackupModel[] = [
   "CoverLetter",
   "Job",
   "Note",
+  "Contact",
   "Task",
   "Activity",
   "Question",

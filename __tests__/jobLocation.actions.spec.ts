@@ -21,6 +21,9 @@ vi.mock("@prisma/client", () => {
     education: {
       count: vi.fn(),
     },
+    contact: {
+      count: vi.fn(),
+    },
     job: {
       count: vi.fn(),
       groupBy: vi.fn(),
@@ -100,7 +103,7 @@ describe("Job Location Actions", () => {
         where: { createdBy: mockUser.id },
         skip: 0,
         take: 10,
-        orderBy: { jobsApplied: { _count: "desc" } },
+        orderBy: [{ jobsApplied: { _count: "desc" } }, { label: "asc" }],
       });
       expect(prisma.location.count).toHaveBeenCalledWith({
         where: { createdBy: mockUser.id },
@@ -139,7 +142,7 @@ describe("Job Location Actions", () => {
             },
           },
         },
-        orderBy: { jobsApplied: { _count: "desc" } },
+        orderBy: [{ jobsApplied: { _count: "desc" } }, { label: "asc" }],
       });
     });
 
@@ -184,13 +187,13 @@ describe("Job Location Actions", () => {
 
       expect(result).toEqual({ data: mockData, total: 1 });
       expect(prisma.location.findMany).toHaveBeenCalledWith({
-        where: { createdBy: mockUser.id, label: { contains: "New" } },
+        where: { createdBy: mockUser.id, OR: [{ label: { contains: "New" } }] },
         skip: 0,
         take: 10,
-        orderBy: { jobsApplied: { _count: "desc" } },
+        orderBy: [{ jobsApplied: { _count: "desc" } }, { label: "asc" }],
       });
       expect(prisma.location.count).toHaveBeenCalledWith({
-        where: { createdBy: mockUser.id, label: { contains: "New" } },
+        where: { createdBy: mockUser.id, OR: [{ label: { contains: "New" } }] },
       });
     });
 
@@ -205,12 +208,16 @@ describe("Job Location Actions", () => {
         where: { createdBy: mockUser.id },
         skip: 0,
         take: 10,
-        orderBy: { jobsApplied: { _count: "desc" } },
+        orderBy: [{ jobsApplied: { _count: "desc" } }, { label: "asc" }],
       });
     });
   });
 
   describe("deleteJobLocationById", () => {
+    beforeEach(() => {
+      (prisma.contact.count as any).mockResolvedValue(0);
+    });
+
     it("should delete a location successfully", async () => {
       (getCurrentUser as any).mockResolvedValue(mockUser);
       (prisma.workExperience.count as any).mockResolvedValue(0);
@@ -280,6 +287,22 @@ describe("Job Location Actions", () => {
         message:
           "Location cannot be deleted due to 5 number of associated jobs! ",
       });
+      expect(prisma.location.delete).not.toHaveBeenCalled();
+    });
+
+    it("refuses to delete a location a contact points at", async () => {
+      (getCurrentUser as any).mockResolvedValue(mockUser);
+      (prisma.workExperience.count as any).mockResolvedValue(0);
+      (prisma.education.count as any).mockResolvedValue(0);
+      (prisma.job.count as any).mockResolvedValue(0);
+      (prisma.contact.count as any).mockResolvedValue(1);
+
+      const result = await deleteJobLocationById("loc-1");
+
+      expect(prisma.contact.count).toHaveBeenCalledWith({
+        where: { locationId: "loc-1", createdBy: mockUser.id },
+      });
+      expect(result.success).toBe(false);
       expect(prisma.location.delete).not.toHaveBeenCalled();
     });
 

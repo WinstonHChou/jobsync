@@ -1,6 +1,8 @@
 "use client";
 import ActivityTypesContainer from "@/components/admin/ActivityTypesContainer";
 import CompaniesContainer from "@/components/admin/CompaniesContainer";
+import ContactRolesContainer from "@/components/admin/ContactRolesContainer";
+import ContactsContainer from "@/components/admin/ContactsContainer";
 import JobLocationsContainer from "@/components/admin/JobLocationsContainer";
 import JobSourcesContainer from "@/components/admin/JobSourcesContainer";
 import JobTitlesContainer from "@/components/admin/JobTitlesContainer";
@@ -39,6 +41,8 @@ function AdminTabsContainer() {
         <TabsTrigger value="sources">Sources</TabsTrigger>
         <TabsTrigger value="skills">Skills</TabsTrigger>
         <TabsTrigger value="activity-types">Activity Types</TabsTrigger>
+        <TabsTrigger value="contacts">Contacts</TabsTrigger>
+        <TabsTrigger value="roles">Roles</TabsTrigger>
       </TabsList>
       <TabsContent value="companies">
         <CompaniesContainer />
@@ -57,6 +61,12 @@ function AdminTabsContainer() {
       </TabsContent>
       <TabsContent value="activity-types">
         <ActivityTypesContainer />
+      </TabsContent>
+      <TabsContent value="contacts">
+        <ContactsContainer />
+      </TabsContent>
+      <TabsContent value="roles">
+        <ContactRolesContainer />
       </TabsContent>
     </Tabs>
   );

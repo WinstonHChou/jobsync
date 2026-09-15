@@ -1,7 +1,17 @@
 import CompaniesContainer from "@/components/admin/CompaniesContainer";
-import { screen, render, waitFor, act } from "@testing-library/react";
+import { screen, render, waitFor, act, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { getCompanyList, getCompanyById } from "@/actions/company.actions";
+import { searchAtsCompanies } from "@/actions/atsCompany.actions";
+
+const mockPush = vi.fn();
+let mockParams = new URLSearchParams("");
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: mockPush }),
+  usePathname: () => "/dashboard/admin",
+  useSearchParams: () => mockParams,
+}));
 
 vi.mock("@/actions/company.actions", () => ({
   getCompanyList: vi.fn(),
@@ -9,6 +19,28 @@ vi.mock("@/actions/company.actions", () => ({
   deleteCompanyById: vi.fn(),
   addCompany: vi.fn(),
   updateCompany: vi.fn(),
+  watchBoardCompany: vi.fn(),
+  setCompanyWatched: vi.fn(),
+  getWatchedBoards: vi.fn().mockResolvedValue([]),
+}));
+
+vi.mock("@/actions/atsCompany.actions", () => ({
+  searchAtsCompanies: vi.fn().mockResolvedValue({
+    companies: [{ name: "Anthropic", token: "anthropic" }],
+    hasMore: false,
+  }),
+  getAtsCompanyCount: vi.fn().mockResolvedValue(1860),
+  resolveAtsBoard: vi.fn(),
+}));
+
+// A real next/link builds its own IntersectionObserver for prefetching, which
+// would replace the sentinel callback captured below
+vi.mock("next/link", () => ({
+  default: ({ href, children, prefetch: _prefetch, ...rest }: any) => (
+    <a href={href} {...rest}>
+      {children}
+    </a>
+  ),
 }));
 
 let intersectionCallback: IntersectionObserverCallback | undefined;
@@ -23,7 +55,13 @@ global.IntersectionObserver = class IntersectionObserver {
 
 describe("CompaniesContainer Search Functionality", () => {
   const mockCompanies = [
-    { id: "1", label: "Amazon", value: "amazon", createdBy: "user-1" },
+    {
+      id: "1",
+      label: "Amazon",
+      value: "amazon",
+      createdBy: "user-1",
+      _count: { contacts: 3 },
+    },
     { id: "2", label: "Google", value: "google", createdBy: "user-1" },
   ];
 
@@ -33,6 +71,7 @@ describe("CompaniesContainer Search Functionality", () => {
     vi.clearAllMocks();
     vi.useFakeTimers({ shouldAdvanceTime: true });
     intersectionCallback = undefined;
+    mockParams = new URLSearchParams("");
   });
 
   afterEach(() => {
@@ -131,7 +170,13 @@ describe("CompaniesContainer Search Functionality", () => {
       });
 
       await waitFor(() => {
-        expect(getCompanyList).toHaveBeenCalledWith(1, 25, "applied", "Amazon");
+        expect(getCompanyList).toHaveBeenCalledWith(
+          1,
+          25,
+          "applied",
+          "Amazon",
+          "mine",
+        );
       });
     });
 
@@ -152,7 +197,13 @@ describe("CompaniesContainer Search Functionality", () => {
       });
 
       expect(getCompanyList).toHaveBeenCalledTimes(1);
-      expect(getCompanyList).toHaveBeenCalledWith(1, 25, "applied", undefined);
+      expect(getCompanyList).toHaveBeenCalledWith(
+        1,
+        25,
+        "applied",
+        undefined,
+        "mine",
+      );
     });
 
     it("should trigger search when clearing search term after searching", async () => {
@@ -177,7 +228,13 @@ describe("CompaniesContainer Search Functionality", () => {
       });
 
       await waitFor(() => {
-        expect(getCompanyList).toHaveBeenCalledWith(1, 25, "applied", "Amazon");
+        expect(getCompanyList).toHaveBeenCalledWith(
+          1,
+          25,
+          "applied",
+          "Amazon",
+          "mine",
+        );
       });
 
       await act(async () => {
@@ -193,6 +250,7 @@ describe("CompaniesContainer Search Functionality", () => {
           25,
           "applied",
           undefined,
+          "mine",
         );
       });
     });
@@ -250,7 +308,13 @@ describe("CompaniesContainer Search Functionality", () => {
       });
 
       await waitFor(() => {
-        expect(getCompanyList).toHaveBeenCalledWith(1, 25, "applied", "Amazon");
+        expect(getCompanyList).toHaveBeenCalledWith(
+          1,
+          25,
+          "applied",
+          "Amazon",
+          "mine",
+        );
       });
 
       await act(async () => {
@@ -261,7 +325,13 @@ describe("CompaniesContainer Search Functionality", () => {
       });
 
       await waitFor(() => {
-        expect(getCompanyList).toHaveBeenCalledWith(2, 25, "applied", "Amazon");
+        expect(getCompanyList).toHaveBeenCalledWith(
+          2,
+          25,
+          "applied",
+          "Amazon",
+          "mine",
+        );
       });
     });
   });
@@ -289,7 +359,13 @@ describe("CompaniesContainer Search Functionality", () => {
       });
 
       await waitFor(() => {
-        expect(getCompanyList).toHaveBeenCalledWith(2, 25, "applied", undefined);
+        expect(getCompanyList).toHaveBeenCalledWith(
+          2,
+          25,
+          "applied",
+          undefined,
+          "mine",
+        );
         expect(screen.getByText("Meta")).toBeInTheDocument();
         expect(screen.getByText("Amazon")).toBeInTheDocument();
       });
@@ -315,6 +391,89 @@ describe("CompaniesContainer Search Functionality", () => {
       });
 
       expect(getCompanyList).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("Scope", () => {
+    it("reads the scope from the URL and browses the seed instead of the database", async () => {
+      mockParams = new URLSearchParams("scope=board:ashby");
+      (getCompanyList as any).mockResolvedValue({ data: [], total: 0 });
+
+      render(<CompaniesContainer />);
+
+      expect(await screen.findByText("Anthropic")).toBeInTheDocument();
+      expect(searchAtsCompanies).toHaveBeenCalledWith("ashby", "", 0);
+      expect(getCompanyList).not.toHaveBeenCalled();
+    });
+
+    it("passes the watchlist scope through to getCompanyList", async () => {
+      mockParams = new URLSearchParams("scope=watchlist");
+      (getCompanyList as any).mockResolvedValue({ data: [], total: 0 });
+
+      render(<CompaniesContainer />);
+
+      await waitFor(() =>
+        expect(getCompanyList).toHaveBeenCalledWith(
+          1,
+          25,
+          "applied",
+          undefined,
+          "watchlist",
+        ),
+      );
+    });
+  });
+  describe("Contacts count", () => {
+    it("shows how many contacts work at each company", async () => {
+      (getCompanyList as any).mockResolvedValue({
+        data: mockCompanies,
+        total: 2,
+      });
+
+      render(<CompaniesContainer />);
+
+      await waitFor(() =>
+        expect(
+          screen.getByRole("columnheader", { name: "Contacts" })
+        ).toBeInTheDocument()
+      );
+      const row = screen.getByRole("row", { name: /Amazon/ });
+      expect(within(row).getByText("3")).toBeInTheDocument();
+    });
+  });
+  describe("Details links", () => {
+    it("links each company name to its details page", async () => {
+      (getCompanyList as any).mockResolvedValue({ data: mockCompanies, total: 2 });
+
+      render(<CompaniesContainer />);
+
+      expect(
+        await screen.findByRole("link", { name: "Amazon" }),
+      ).toHaveAttribute("href", "/dashboard/admin/companies/1");
+    });
+
+    it("carries the watchlist scope into the details link", async () => {
+      mockParams = new URLSearchParams("scope=watchlist");
+      (getCompanyList as any).mockResolvedValue({ data: mockCompanies, total: 2 });
+
+      render(<CompaniesContainer />);
+
+      expect(
+        await screen.findByRole("link", { name: "Amazon" }),
+      ).toHaveAttribute("href", "/dashboard/admin/companies/1?scope=watchlist");
+    });
+
+    it("offers View details first in the row menu", async () => {
+      (getCompanyList as any).mockResolvedValue({ data: mockCompanies, total: 2 });
+
+      render(<CompaniesContainer />);
+
+      const row = await screen.findByRole("row", { name: /Amazon/ });
+      await user.click(within(row).getByRole("button", { name: /toggle menu/i }));
+
+      const items = await screen.findAllByRole("menuitem");
+      expect(items[0]).toHaveTextContent("View details");
+      expect(items[0]).toHaveAttribute("href", "/dashboard/admin/companies/1");
     });
   });
 });

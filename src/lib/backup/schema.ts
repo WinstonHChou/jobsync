@@ -21,7 +21,22 @@ const optDt = z.coerce.date().nullable();
 const int = z.number().int();
 const optInt = z.number().int().nullable();
 
-const Company = z.object({ id, label: str, value: str, logoUrl: optStr });
+// The watchlist columns are optional, not just nullable: a backup taken before
+// they existed has no such key, and undefined leaves Prisma on the default.
+const Company = z.object({
+  id,
+  label: str,
+  value: str,
+  logoUrl: optStr,
+  watched: z.boolean().optional(),
+  watchedAt: optDt.optional(),
+  atsProvider: optStr.optional(),
+  atsToken: optStr.optional(),
+  atsHost: optStr.optional(),
+  websiteUrl: optStr.optional(),
+  careersUrl: optStr.optional(),
+  industry: optStr.optional(),
+});
 const JobTitle = z.object({ id, label: str, value: str });
 const Location = z.object({
   id,
@@ -210,12 +225,38 @@ const Note = z.object({
 
 const Interview = z.object({ id, createdAt: dt, jobId: id });
 
+// Everything past `interviewId` is `.optional()` as well as nullable: a backup
+// taken before the contacts feature has no such key, and undefined leaves
+// Prisma on the column default.
 const Contact = z.object({
   id,
   name: str,
-  email: str,
+  email: optStr,
   createdAt: dt,
   interviewId: optId,
+  title: optStr.optional(),
+  phone: optStr.optional(),
+  linkedinUrl: optStr.optional(),
+  companyId: optId.optional(),
+  locationId: optId.optional(),
+  relationship: optStr.optional(),
+  workedAtCompanyId: optId.optional(),
+  workedFrom: optDt.optional(),
+  workedTo: optDt.optional(),
+  roleId: optId.optional(),
+  notes: optStr.optional(),
+  lastContactedAt: optDt.optional(),
+  updatedAt: dt.optional(),
+});
+
+const ContactRole = z.object({ id, label: str, value: str });
+
+const JobContact = z.object({
+  id,
+  jobId: id,
+  contactId: id,
+  roleId: id,
+  createdAt: dt,
 });
 
 const Task = z.object({
@@ -289,6 +330,7 @@ export const BackupDataSchema = z.object({
   JobSource: group(JobSource),
   Tag: group(Tag),
   ActivityType: group(ActivityType),
+  ContactRole: group(ContactRole),
   Profile: group(Profile),
   File: group(File),
   Resume: group(Resume),
@@ -306,6 +348,7 @@ export const BackupDataSchema = z.object({
   Note: group(Note),
   Interview: group(Interview),
   Contact: group(Contact),
+  JobContact: group(JobContact),
   Task: group(Task),
   Activity: group(Activity),
   Question: group(Question),

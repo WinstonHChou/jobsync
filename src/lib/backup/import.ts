@@ -2,7 +2,7 @@ import fs from "fs/promises";
 import path from "path";
 import type JSZip from "jszip";
 import db from "@/lib/db";
-import { APP_CONSTANTS } from "@/lib/constants";
+import { APP_CONSTANTS, CONTACT_ROLES } from "@/lib/constants";
 import { IdMap, buildCreateData } from "./idmap";
 import { BackupError, openBackupZip, readManifest } from "./manifest";
 import {
@@ -22,6 +22,7 @@ import {
 } from "./ordering";
 import { writeSnapshot } from "./snapshot";
 import { log } from "@/lib/telemetry";
+import { isResumeFilePath } from "@/lib/resumeFiles";
 import { BackupDataSchema, type BackupData, type BackupManifest } from "./schema";
 
 export interface PreflightResult {
@@ -203,7 +204,7 @@ export async function importBackup(
   }
 
   const zip = await openBackupZip(bytes);
-  await readManifest(zip);
+  const manifest = await readManifest(zip);
   const data = await readData(zip);
 
   const targetCounts = await countTargetContent(userId);
@@ -307,6 +308,18 @@ export async function importBackup(
         await wipe(tx, userId);
         await insertLookups(tx, data, idMap, userId);
 
+        // A backup from before contacts carries no roles, and the wipe above
+        // just deleted the seeded ones — reseed rather than leave none.
+        if (manifest.counts.ContactRole === undefined && data.ContactRole.length === 0) {
+          await tx.contactRole.createMany({
+            data: CONTACT_ROLES.map((role) => ({
+              label: role.label,
+              value: role.value,
+              createdBy: userId,
+            })),
+          });
+        }
+
         for (const model of INSERT_ORDER) {
           if (MODEL_SPECS[model].lookup) continue;
           const spec = MODEL_SPECS[model];
@@ -383,6 +396,12 @@ export async function importBackup(
   // resume files in UPLOADS_DIR forever with no row pointing at them.
   for (const filePath of oldFilePaths) {
     if (writtenPaths.includes(filePath)) continue;
+    if (!isResumeFilePath(filePath)) {
+      log.warn("[Backup] Skipped removing a file outside the resumes directory", {
+        "file.path": filePath,
+      });
+      continue;
+    }
     await fs.unlink(filePath).catch((error) => {
       log.warn("[Backup] Could not remove replaced file", {
         "file.path": filePath,

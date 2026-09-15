@@ -33,6 +33,7 @@ type AddCompanyProps = {
   resetEditCompany: () => void;
   dialogOpen: boolean;
   setDialogOpen: (e: boolean) => void;
+  hideTrigger?: boolean;
 };
 
 function AddCompany({
@@ -41,6 +42,7 @@ function AddCompany({
   resetEditCompany,
   dialogOpen,
   setDialogOpen,
+  hideTrigger,
 }: AddCompanyProps) {
   const [isPending, startTransition] = useTransition();
 
@@ -51,6 +53,9 @@ function AddCompany({
     defaultValues: {
       company: "",
       logoUrl: "",
+      websiteUrl: "",
+      careersUrl: "",
+      industry: "",
       id: undefined,
       createdBy: undefined,
     },
@@ -66,6 +71,9 @@ function AddCompany({
           company: editCompany?.label ?? "",
           createdBy: editCompany?.createdBy,
           logoUrl: editCompany?.logoUrl ?? "",
+          websiteUrl: editCompany?.websiteUrl ?? "",
+          careersUrl: editCompany?.careersUrl ?? "",
+          industry: editCompany?.industry ?? "",
         },
         { keepDefaultValues: true },
       );
@@ -100,18 +108,20 @@ function AddCompany({
 
   return (
     <>
-      <Button
-        size="sm"
-        variant="outline"
-        className="h-8 gap-1"
-        onClick={addCompanyForm}
-        data-testid="add-company-btn"
-      >
-        <PlusCircle className="h-3.5 w-3.5" />
-        <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-          New Company
-        </span>
-      </Button>
+      {!hideTrigger && (
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-8 gap-1"
+          onClick={addCompanyForm}
+          data-testid="add-company-btn"
+        >
+          <PlusCircle className="h-3.5 w-3.5" />
+          <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+            New Company
+          </span>
+        </Button>
+      )}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="lg:max-h-screen overflow-y-scroll">
           <DialogHeader>
@@ -161,6 +171,56 @@ function AddCompany({
                   )}
                 />
               </div>
+              {/* COMPANY WEBSITE */}
+              <FormField
+                control={form.control}
+                name="websiteUrl"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Website</FormLabel>
+                    <FormControl>
+                      <Input placeholder="https://example.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* CAREERS PAGE */}
+              <FormField
+                control={form.control}
+                name="careersUrl"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Careers Page</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="https://example.com/careers"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* INDUSTRY */}
+              <div className="md:col-span-2">
+                <FormField
+                  control={form.control}
+                  name="industry"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Industry</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Financial Services" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
               <div className="md:col-span-2 mt-4">
                 <DialogFooter
                 // className="md:col-span

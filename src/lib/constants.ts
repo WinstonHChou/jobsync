@@ -12,6 +12,9 @@ import {
 
 export const APP_CONSTANTS = {
   RECORDS_PER_PAGE: 25,
+  // Page size for the ATS board directory (browse + typeahead). Kept here so
+  // the pager and searchAtsCompanies can never disagree.
+  ATS_COMPANY_PAGE_SIZE: 50,
   MAX_AUTOMATIONS_PER_USER: 10,
   MAX_JOB_TAGS: 10,
   MIN_QUESTION_LENGTH: 5,
@@ -103,6 +106,9 @@ export const APP_CONSTANTS = {
   ATS_LISTING_CAP: 50, // safety ceiling applied after the relevance floor
   ATS_FLOOR_MIN_TITLE_HITS: 1,
   ATS_FLOOR_MIN_KEYWORD_HITS: 1,
+  // Minimum weighted prerank score to spend an LLM call on. Measured against
+  // real runs: nothing scoring below this ever exceeded a 6% AI match.
+  ATS_MIN_PRERANK_SCORE: 0.1,
   ATS_TITLE_WEIGHT: 0.6,
   ATS_SKILL_WEIGHT: 0.4,
 
@@ -271,6 +277,17 @@ export const JOB_SOURCES = [
   { label: "ZipRecruiter", value: "ziprecruiter" },
   { label: "Job Street", value: "jobstreet" },
   { label: "Other", value: "other" },
+] as const;
+
+// Seeded per user at signup and backfilled by the contacts migration. `value`
+// must equal canonicalizeEntityValue(label) or the creatable role picker will
+// mint a duplicate instead of matching the seeded row.
+export const CONTACT_ROLES = [
+  { label: "Recruiter", value: "recruiter" },
+  { label: "Hiring Manager", value: "hiring manager" },
+  { label: "Interviewer", value: "interviewer" },
+  { label: "Referrer", value: "referrer" },
+  { label: "Reference", value: "reference" },
 ] as const;
 
 export const JOB_STATUSES = [

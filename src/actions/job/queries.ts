@@ -4,6 +4,7 @@ import { handleError } from "@/lib/utils";
 import { JOB_TYPES } from "@/models/job.model";
 import { APP_CONSTANTS } from "@/lib/constants";
 import { requireUser } from "../shared";
+import { hideUnanalyzedScore } from "./shared";
 
 const JOB_LIST_SELECT = {
   id: true,
@@ -20,6 +21,7 @@ const JOB_LIST_SELECT = {
   Resume: true,
   CoverLetter: true,
   matchScore: true,
+  matchData: true,
   discoveryStatus: true,
   _count: { select: { Notes: true } },
 };
@@ -52,6 +54,23 @@ const JOB_DETAILS_INCLUDE = {
   },
   CoverLetter: true,
   tags: true,
+  contactLinks: {
+    include: {
+      Role: true,
+      Contact: {
+        select: {
+          id: true,
+          name: true,
+          title: true,
+          email: true,
+          phone: true,
+          linkedinUrl: true,
+          Company: { select: { id: true, label: true } },
+        },
+      },
+    },
+    orderBy: { createdAt: "asc" as const },
+  },
 };
 
 type JobsListFilters = {
@@ -191,7 +210,7 @@ export const getJobsList = async (
         where: whereClause,
       }),
     ]);
-    return { success: true, data, total };
+    return { success: true, data: data.map(hideUnanalyzedScore), total };
   } catch (error) {
     const msg = "Failed to fetch jobs list. ";
     return handleError(error, msg);

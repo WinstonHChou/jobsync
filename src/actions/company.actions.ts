@@ -6,6 +6,7 @@ export {
   getCompanyList,
   getAllCompanies,
   getCompanyById,
+  getCompanyDetails,
 } from "./company/queries";
 
 export {
@@ -13,3 +14,9 @@ export {
   updateCompany,
   deleteCompanyById,
 } from "./company/mutations";
+
+export {
+  watchBoardCompany,
+  setCompanyWatched,
+  getWatchedBoards,
+} from "./company/watch";

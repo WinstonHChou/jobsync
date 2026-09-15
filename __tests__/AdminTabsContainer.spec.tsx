@@ -13,6 +13,8 @@ vi.mock("next/navigation", () => ({
 vi.mock("@/actions/company.actions", () => ({
   getCompanyList: vi.fn().mockResolvedValue({ data: [], total: 0 }),
   getCompanyById: vi.fn(),
+  getAllCompanies: vi.fn().mockResolvedValue([]),
+  addCompany: vi.fn(),
 }));
 
 vi.mock("@/actions/jobtitle.actions", () => ({
@@ -21,11 +23,27 @@ vi.mock("@/actions/jobtitle.actions", () => ({
 
 vi.mock("@/actions/jobLocation.actions", () => ({
   getJobLocationsList: vi.fn().mockResolvedValue({ data: [], total: 0 }),
+  getAllJobLocations: vi.fn().mockResolvedValue([]),
+}));
+
+vi.mock("@/actions/contact.actions", () => ({
+  getContactList: vi.fn().mockResolvedValue({ data: [], total: 0 }),
+  getContactById: vi.fn(),
+  deleteContactById: vi.fn(),
+  createContact: vi.fn(),
+  updateContact: vi.fn(),
 }));
 
 vi.mock("@/actions/activity.actions", () => ({
   getActivityTypeList: vi.fn().mockResolvedValue({ data: [], total: 0 }),
   createActivityType: vi.fn(),
+}));
+
+vi.mock("@/actions/contactRole.actions", () => ({
+  getContactRoleList: vi.fn().mockResolvedValue({ data: [], total: 0 }),
+  getAllContactRoles: vi.fn().mockResolvedValue([]),
+  createContactRole: vi.fn(),
+  deleteContactRoleById: vi.fn(),
 }));
 
 describe("AdminTabsContainer", () => {
@@ -48,6 +66,8 @@ describe("AdminTabsContainer", () => {
     expect(
       screen.getByRole("tab", { name: "Activity Types" })
     ).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Contacts" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Roles" })).toBeInTheDocument();
   });
 
   it("should default to companies tab", () => {

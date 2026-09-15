@@ -28,6 +28,9 @@ interface DatePickerProps {
   presets: boolean;
   isEnabled: boolean;
   captionLayout?: boolean;
+  // Opt out of the default fixed trigger width when the field sits in a grid
+  fullWidth?: boolean;
+  disableFuture?: boolean;
 }
 
 export function DatePicker({
@@ -35,6 +38,8 @@ export function DatePicker({
   presets,
   isEnabled,
   captionLayout,
+  fullWidth,
+  disableFuture,
 }: DatePickerProps) {
   const [isPopoverOpen, setIsPopoverOpen] = useState<boolean>(false);
 
@@ -45,7 +50,8 @@ export function DatePicker({
           <Button
             variant={"outline"}
             className={cn(
-              "md:w-[240px] lg:w-[280px] justify-start text-left font-normal",
+              "justify-start text-left font-normal",
+              fullWidth ? "w-full" : "md:w-[240px] lg:w-[280px]",
               !field.value && "text-muted-foreground"
             )}
             disabled={!isEnabled}
@@ -80,6 +86,7 @@ export function DatePicker({
           startMonth={captionLayout ? new Date(1970, 0) : undefined}
           endMonth={captionLayout ? new Date() : undefined}
           selected={field.value}
+          disabled={disableFuture ? { after: new Date() } : undefined}
           onSelect={(value) => {
             field.onChange(value);
             setIsPopoverOpen(false);

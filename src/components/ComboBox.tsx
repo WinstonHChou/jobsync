@@ -28,6 +28,7 @@ import { createJobTitle } from "@/actions/jobtitle.actions";
 import { toastError } from "@/lib/toast";
 import { createActivityType } from "@/actions/activity.actions";
 import { createJobSource } from "@/actions/job.actions";
+import { createContactRole } from "@/actions/contactRole.actions";
 
 interface ComboboxProps {
   options: any[];
@@ -35,6 +36,9 @@ interface ComboboxProps {
   creatable?: boolean;
   freeText?: boolean;
   label?: string;
+  onSearchChange?: (search: string) => void;
+  // Opt out of the default fixed trigger width when the field sits in a grid
+  fullWidth?: boolean;
 }
 
 export function Combobox({
@@ -43,6 +47,8 @@ export function Combobox({
   creatable,
   freeText,
   label,
+  onSearchChange,
+  fullWidth,
 }: ComboboxProps) {
   // Placeholder text only; the accessible name comes from FormLabel/FormControl
   const displayName = label ?? field.name;
@@ -104,6 +110,18 @@ export function Combobox({
           response = sourceRes.data;
           if (!sourceRes.success) return;
           break;
+        case "workedAtCompany":
+          const workedRes = await addCompany({ company: label });
+          response = workedRes.data;
+          break;
+        case "contactRole":
+          const roleRes = await createContactRole(label);
+          if (!roleRes.success) {
+            toastError(roleRes.message);
+            return;
+          }
+          response = roleRes.data;
+          break;
         case "activityType":
           response = await createActivityType(label);
           break;
@@ -125,7 +143,8 @@ export function Combobox({
             variant="outline"
             role="combobox"
             className={cn(
-              "md:w-[240px] lg:w-[280px] justify-between",
+              "justify-between",
+              fullWidth ? "w-full" : "md:w-[240px] lg:w-[280px]",
               !field.value && "text-muted-foreground"
             )}
           >
@@ -144,7 +163,14 @@ export function Combobox({
           </Button>
         </FormControl>
       </PopoverTrigger>
-      <PopoverContent className="md:w-[240px] lg:w-[280px] p-0">
+      <PopoverContent
+        className={cn(
+          "p-0",
+          fullWidth
+            ? "w-(--radix-popover-trigger-width)"
+            : "md:w-[240px] lg:w-[280px]"
+        )}
+      >
         <Command
           filter={(value, search) =>
             value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0
@@ -152,7 +178,10 @@ export function Combobox({
         >
           <CommandInput
             value={newOption}
-            onValueChange={(val: string) => setNewOption(val)}
+            onValueChange={(val: string) => {
+              setNewOption(val);
+              onSearchChange?.(val);
+            }}
             placeholder={`${creatable ? "Create or " : ""}Search ${displayName}`}
             onKeyDown={(e) => handleEnterKey(e)}
           />

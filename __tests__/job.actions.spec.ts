@@ -29,10 +29,12 @@ vi.mock("@prisma/client", () => {
       findMany: vi.fn(),
       findFirst: vi.fn(),
       create: vi.fn(),
+      count: vi.fn(),
     },
     job: {
       findMany: vi.fn(),
       findUnique: vi.fn(),
+      findFirst: vi.fn(),
       count: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
@@ -43,7 +45,13 @@ vi.mock("@prisma/client", () => {
       findFirst: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
+      count: vi.fn(),
     },
+    jobTitle: { count: vi.fn() },
+    company: { count: vi.fn() },
+    resume: { count: vi.fn() },
+    coverLetter: { count: vi.fn() },
+    tag: { count: vi.fn() },
   };
   return {
     PrismaClient: vi.fn(function () {
@@ -81,8 +89,20 @@ describe("jobActions", () => {
     resume: "",
     tags: [],
   };
+  const refModels = [
+    "jobTitle",
+    "company",
+    "location",
+    "jobSource",
+    "resume",
+    "coverLetter",
+    "tag",
+  ];
   beforeEach(() => {
     vi.clearAllMocks();
+    for (const model of refModels) {
+      (prisma as any)[model].count.mockResolvedValue(1);
+    }
   });
   describe("getStatusList", () => {
     it("should return status list on successful query", async () => {
@@ -156,6 +176,31 @@ describe("jobActions", () => {
       });
       expect(prisma.job.findMany).toHaveBeenCalledTimes(1);
       expect(prisma.job.count).toHaveBeenCalledTimes(1);
+    });
+    it("should hide the pre-rank score of un-analyzed jobs and drop matchData", async () => {
+      (getCurrentUser as any).mockResolvedValue(mockUser);
+      (prisma.job.findMany as any).mockResolvedValue([
+        {
+          id: "unanalyzed",
+          matchScore: 28,
+          matchData: JSON.stringify({ prerankScore: 0.29, analyzed: false }),
+        },
+        {
+          id: "analyzed",
+          matchScore: 71,
+          matchData: JSON.stringify({ matchScore: 71, body: "## Summary" }),
+        },
+        { id: "unmatched", matchScore: null, matchData: null },
+      ]);
+      (prisma.job.count as any).mockResolvedValue(3);
+
+      const result = await getJobsList();
+
+      expect(result.data).toStrictEqual([
+        { id: "unanalyzed", matchScore: null },
+        { id: "analyzed", matchScore: 71 },
+        { id: "unmatched", matchScore: null },
+      ]);
     });
     it("should return error when fetching data fails", async () => {
       (getCurrentUser as any).mockResolvedValue(mockUser);
@@ -764,6 +809,23 @@ describe("jobActions", () => {
           },
         },
         tags: true,
+        contactLinks: {
+          include: {
+            Role: true,
+            Contact: {
+              select: {
+                id: true,
+                name: true,
+                title: true,
+                email: true,
+                phone: true,
+                linkedinUrl: true,
+                Company: { select: { id: true, label: true } },
+              },
+            },
+          },
+          orderBy: { createdAt: "asc" },
+        },
       },
     });
   });
@@ -999,8 +1061,148 @@ describe("jobActions", () => {
         message: "Not authenticated",
       });
     });
+    it("counts each referenced id against the caller", async () => {
+      (getCurrentUser as any).mockResolvedValue(mockUser);
+      (prisma.job.create as any).mockResolvedValue(jobData);
+
+      await addJob({
+        ...jobData,
+        resume: "resume-id",
+        coverLetter: "letter-id",
+        tags: ["tag-1", "tag-1"],
+      });
+
+      const db = prisma as any;
+      const owned = { createdBy: mockUser.id };
+      const inProfile = { profile: { userId: mockUser.id } };
+      expect(db.jobTitle.count).toHaveBeenCalledWith({
+        where: { id: "job-title-id", ...owned },
+      });
+      expect(db.company.count).toHaveBeenCalledWith({
+        where: { id: "company-id", ...owned },
+      });
+      expect(db.location.count).toHaveBeenCalledWith({
+        where: { id: "location-id", ...owned },
+      });
+      expect(db.jobSource.count).toHaveBeenCalledWith({
+        where: { id: "source-id", ...owned },
+      });
+      expect(db.resume.count).toHaveBeenCalledWith({
+        where: { id: "resume-id", ...inProfile },
+      });
+      expect(db.coverLetter.count).toHaveBeenCalledWith({
+        where: { id: "letter-id", ...inProfile },
+      });
+      expect(db.tag.count).toHaveBeenCalledWith({
+        where: { id: { in: ["tag-1"] }, ...owned },
+      });
+      expect(prisma.job.create).toHaveBeenCalledTimes(1);
+    });
+    it.each([
+      ["company", {}, "Company not found"],
+      ["resume", { resume: "resume-id" }, "Resume not found"],
+      ["coverLetter", { coverLetter: "letter-id" }, "Cover letter not found"],
+    ])("rejects another user's %s", async (model, overrides, message) => {
+      (getCurrentUser as any).mockResolvedValue(mockUser);
+      (prisma as any)[model].count.mockResolvedValue(0);
+
+      const result = await addJob({ ...jobData, ...overrides });
+
+      expect(result).toStrictEqual({ success: false, message });
+      expect(prisma.job.create).not.toHaveBeenCalled();
+    });
+    it("rejects a tag list that includes another user's tag", async () => {
+      (getCurrentUser as any).mockResolvedValue(mockUser);
+
+      const result = await addJob({ ...jobData, tags: ["tag-1", "tag-2"] });
+
+      expect(result).toStrictEqual({ success: false, message: "Tag not found" });
+      expect(prisma.job.create).not.toHaveBeenCalled();
+    });
+    it("skips the check for a resume that was not picked", async () => {
+      (getCurrentUser as any).mockResolvedValue(mockUser);
+      (prisma.job.create as any).mockResolvedValue(jobData);
+
+      await addJob(jobData);
+
+      expect((prisma as any).resume.count).not.toHaveBeenCalled();
+      expect((prisma as any).tag.count).not.toHaveBeenCalled();
+    });
   });
   describe("updateJob", () => {
+    const currentRefs = {
+      jobTitleId: "job-title-id",
+      companyId: "company-id",
+      locationId: "location-id",
+      jobSourceId: "source-id",
+      resumeId: null,
+      coverLetterId: null,
+      tags: [{ id: "tag-1" }],
+    };
+    beforeEach(() => {
+      (prisma.job as any).findFirst.mockResolvedValue(currentRefs);
+    });
+    it("does not re-check ids the job already holds", async () => {
+      (getCurrentUser as any).mockResolvedValue(mockUser);
+      (prisma as any).jobSource.count.mockResolvedValue(0);
+      (prisma.job.update as any).mockResolvedValue(jobData);
+
+      const result = await updateJob({ ...jobData, tags: ["tag-1"] });
+
+      expect(result.success).toBe(true);
+      expect((prisma.job as any).findFirst.mock.calls[0][0].where).toEqual({
+        id: "job-id",
+        userId: mockUser.id,
+      });
+      expect((prisma as any).jobSource.count).not.toHaveBeenCalled();
+      expect((prisma as any).company.count).not.toHaveBeenCalled();
+      expect((prisma as any).tag.count).not.toHaveBeenCalled();
+    });
+    it("rejects a newly attached company the caller does not own", async () => {
+      (getCurrentUser as any).mockResolvedValue(mockUser);
+      (prisma as any).company.count.mockResolvedValue(0);
+
+      const result = await updateJob({ ...jobData, company: "other-company" });
+
+      expect(result).toStrictEqual({
+        success: false,
+        message: "Company not found",
+      });
+      expect(prisma.job.update).not.toHaveBeenCalled();
+    });
+    it.each([
+      ["resume", { resume: "resume-id" }, "Resume not found"],
+      ["coverLetter", { coverLetter: "letter-id" }, "Cover letter not found"],
+    ])("rejects another user's %s", async (model, overrides, message) => {
+      (getCurrentUser as any).mockResolvedValue(mockUser);
+      (prisma as any)[model].count.mockResolvedValue(0);
+
+      const result = await updateJob({ ...jobData, ...overrides });
+
+      expect(result).toStrictEqual({ success: false, message });
+      expect(prisma.job.update).not.toHaveBeenCalled();
+    });
+    it("checks only the tags being added", async () => {
+      (getCurrentUser as any).mockResolvedValue(mockUser);
+      (prisma as any).tag.count.mockResolvedValue(0);
+
+      const result = await updateJob({ ...jobData, tags: ["tag-1", "tag-2"] });
+
+      expect((prisma as any).tag.count).toHaveBeenCalledWith({
+        where: { id: { in: ["tag-2"] }, createdBy: mockUser.id },
+      });
+      expect(result).toStrictEqual({ success: false, message: "Tag not found" });
+      expect(prisma.job.update).not.toHaveBeenCalled();
+    });
+    it("reports a job the caller does not own", async () => {
+      (getCurrentUser as any).mockResolvedValue(mockUser);
+      (prisma.job as any).findFirst.mockResolvedValue(null);
+
+      const result = await updateJob(jobData);
+
+      expect(result).toStrictEqual({ success: false, message: "Job not found" });
+      expect(prisma.job.update).not.toHaveBeenCalled();
+    });
     it("should update a job successfully", async () => {
       (getCurrentUser as any).mockResolvedValue(mockUser);
       (prisma.job.update as any).mockResolvedValue(jobData);
