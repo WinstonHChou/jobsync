@@ -152,10 +152,20 @@ export const GET = async (req: NextRequest) => {
 
     // Strip CR/LF from filename to prevent header injection
     const safeFileName = fileName.replace(/[\r\n"]/g, "_");
+
+    // Serve inline (preview) or as attachment (download) based on query param
+    const isPreview = searchParams.get("preview") === "true";
+    const disposition = isPreview
+      ? `inline; filename="${safeFileName}"`
+      : `attachment; filename="${safeFileName}"`;
+
     const response = new NextResponse(fileContent, {
       headers: {
         "Content-Type": contentType,
-        "Content-Disposition": `attachment; filename="${safeFileName}"`,
+        "Content-Disposition": disposition,
+        "Cache-Control": "public, max-age=3600",
+        "X-Frame-Options": "SAMEORIGIN",
+        "Content-Security-Policy": "frame-ancestors 'self'",
       },
     });
 

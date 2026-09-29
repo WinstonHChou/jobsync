@@ -29,6 +29,8 @@ export function getDefaultModelForProvider(provider: AiProvider): string {
       return OllamaModel.LLAMA3_2;
     case AiProvider.OPENAI:
       return OpenaiModel.GPT4O_MINI;
+    case AiProvider.OPENAI_COMPATIBLE:
+      return "nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-NVFP4";
     case AiProvider.DEEPSEEK:
       return DeepseekModel.DEEPSEEK_CHAT;
     case AiProvider.GEMINI:
