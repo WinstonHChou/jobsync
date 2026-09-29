@@ -16,7 +16,7 @@ import { ReviewDetails } from "./ReviewDetails";
 import { useAgentChat } from "@/components/agent/AgentChatProvider";
 import type { ResumeReviewData } from "@/models/ai.schemas";
 import { ExportPdfDialog } from "./ExportPdfDialog";
-import { Sparkles } from "lucide-react";
+import { Sparkles, FileText } from "lucide-react";
 import { deleteSkillsSection, setDefaultResume } from "@/actions/profile.actions";
 import { DeleteAlertDialog } from "../DeleteAlertDialog";
 import { ResumeHeader } from "./resume-container/ResumeHeader";
@@ -29,6 +29,7 @@ import {
 } from "./resume-container/ResumeDialogs";
 import { useResumeImport } from "./resume-container/useResumeImport";
 import { useResumePdfExport } from "./resume-container/useResumePdfExport";
+import usePdfPreviewState from "./resume-container/usePdfPreviewState";
 
 function ResumeContainer({
   resume,
@@ -58,7 +59,17 @@ function ResumeContainer({
   }, [resume.reviewData]);
   const resumeSectionRef = useRef<AddResumeSectionRef>(null);
   const [showExportDialog, setShowExportDialog] = useState(false);
-  const [showPdfInlinePreview, setShowPdfInlinePreview] = useState(false);
+  const {
+    showPreview: showPdfInlinePreview,
+    handlePreviewPdf,
+    closePreview: closePdfInlinePreview,
+    previewUrl,
+    isPreviewLoading,
+    previewError,
+    downloadFile,
+    isDownloading,
+    isPreviewable,
+  } = usePdfPreviewState(resume);
   const [showDiscardImportConfirm, setShowDiscardImportConfirm] =
     useState(false);
 
@@ -197,7 +208,7 @@ function ResumeContainer({
         onReview={onReviewClick}
         onExport={() => setShowExportDialog(true)}
         onSetDefault={() => setSetDefaultConfirmOpen(true)}
-        onPreview={() => setShowPdfInlinePreview(true)}
+        onPreview={isPreviewable ? handlePreviewPdf : undefined}
       />
 
       <DeleteAlertDialog
@@ -314,55 +325,52 @@ function ResumeContainer({
       />
 
       {/* INLINE PDF PREVIEW PANEL */}
-      {showPdfInlinePreview && resume.File?.filePath && (() => {
-        const filePath = resume.File.filePath;
-        const previewUrl = `/api/profile/resume?preview=true&filePath=${encodeURIComponent(filePath)}`;
-        const downloadUrl = `/api/profile/resume?filePath=${encodeURIComponent(filePath)}`;
-
-        return (
-          <Card className="mt-6">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
-                  <path d="M14 2v4a2 2 0 0 0 2 2h4" />
-                </svg>
-                PDF Preview
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
+      {showPdfInlinePreview && (
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <FileText className="h-4 w-4" />
+              PDF Preview
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            {isPreviewLoading && (
+              <p className="p-4 text-sm text-muted-foreground">
+                Loading preview...
+              </p>
+            )}
+            {!isPreviewLoading && previewError && (
+              <p className="p-4 text-sm text-destructive">{previewError}</p>
+            )}
+            {!isPreviewLoading && !previewError && !previewUrl && (
+              <p className="p-4 text-sm text-muted-foreground">
+                No preview is available for this file.
+              </p>
+            )}
+            {!isPreviewLoading && previewUrl && (
               <iframe
                 src={previewUrl}
                 className="h-[70vh] w-full border-0"
                 title="Resume PDF Preview"
               />
-            </CardContent>
-            <CardFooter className="flex justify-end gap-2 border-t p-4 pt-0">
-              <Button variant="outline" onClick={() => setShowPdfInlinePreview(false)}>
-                Close Preview
-              </Button>
-              <Button
-                variant="default"
-                onClick={() => {
-                  window.open(downloadUrl, "_blank");
-                }}
-              >
-                Download
-              </Button>
-            </CardFooter>
-          </Card>
-        );
-      })()}
+            )}
+          </CardContent>
+          <CardFooter className="flex justify-end gap-2 border-t p-4 pt-0">
+            <Button variant="outline" onClick={closePdfInlinePreview}>
+              Close Preview
+            </Button>
+            <Button
+              variant="default"
+              disabled={isDownloading}
+              onClick={() => {
+                void downloadFile();
+              }}
+            >
+              Download
+            </Button>
+          </CardFooter>
+        </Card>
+      )}
     </>
   );
 }

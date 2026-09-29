@@ -164,8 +164,10 @@ export const GET = async (req: NextRequest) => {
         "Content-Type": contentType,
         "Content-Disposition": disposition,
         "Cache-Control": "public, max-age=3600",
-        "X-Frame-Options": "SAMEORIGIN",
-        "Content-Security-Policy": "frame-ancestors 'self'",
+        // No framing header here: the app-wide `X-Frame-Options: DENY`
+        // (next.config.mjs) already covers this route and overrides any
+        // per-response value. The preview is rendered from a same-origin blob:
+        // URL rather than by framing this endpoint.
       },
     });
 
