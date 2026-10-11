@@ -37,6 +37,8 @@ model User {
   Tag            Tag[]
   Question       Question[]
   McpAccessToken McpAccessToken[]
+  Notification   Notification[]
+  aiCalls        AiCall[]
   ChatConversation ChatConversation?
   defaultResumeId String?
   defaultResume   Resume?          @relation("UserDefaultResume", fields: [defaultResumeId], references: [id], onDelete: SetNull)
@@ -339,6 +341,9 @@ model Company {
   websiteUrl      String?
   careersUrl      String?
   industry        String?
+  linkedinUrl     String?
+  size            String?
+  notes           String?
 
   @@unique([value, createdBy])
   @@unique([createdBy, atsProvider, atsToken])
@@ -575,6 +580,7 @@ model Automation {
 
   runs           AutomationRun[]
   discoveredJobs Job[]
+  notifications  Notification[]
 
   @@index([userId])
   @@index([status, nextRunAt])
@@ -604,6 +610,47 @@ model AutomationRun {
   // Also has a hand-written partial unique index (not expressible here):
   // UNIQUE(automationId) WHERE status IN ('running', 'cancelling')
   // See migrations/20260710000001_automation_run_single_active
+}
+
+model Notification {
+  id           String     @id @default(uuid())
+  userId       String
+  user         User       @relation(fields: [userId], references: [id])
+  automationId String
+  automation   Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
+  runId        String? // last run that produced/refreshed it; plain id, no FK
+
+  kind        String // "run" | "error" | "board"
+  boardToken  String? // set only for kind "board"; the D2 refresh key
+  payload     String // JSON, shape per kind in notification.model.ts
+  occurrences Int     @default(1)
+
+  occurredAt  DateTime  @default(now())
+  readAt      DateTime?
+  dismissedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([userId, occurredAt])
+  @@index([userId, readAt])
+  @@index([automationId, kind, boardToken])
+}
+
+model AiCall {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  feature      String // AiUsageFeature in aiUsage.model.ts
+  provider     String
+  model        String
+  status       String // AiCallStatus in aiUsage.model.ts
+  inputTokens  Int?
+  outputTokens Int?
+  durationMs   Int
+  firstTokenMs Int?
+  numCtx       Int? // Ollama only, and only where the app passes num_ctx
+  startedAt    DateTime @default(now())
+
+  @@index([userId, startedAt])
 }
 
 model Note {

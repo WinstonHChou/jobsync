@@ -27,6 +27,7 @@ export const APP_CONSTANTS = {
   MAX_SKILL_CATEGORIES: 8,
   MAX_SKILLS_PER_CATEGORY: 20,
   MIN_RESUME_SECTIONS_FOR_SELECTION: 2,
+  RESUME_PICKER_LIMIT: 100,
   ACTIVITY_MAX_DURATION_MINUTES: 8 * 60, // 8 Hours
   ACTIVITY_MAX_DURATION_MS: 8 * 60 * 60 * 1000, // 8 hours in milliseconds
   ACTIVITY_MIN_DURATION_MINUTES: 2, // activities shorter than this are discarded
@@ -147,7 +148,7 @@ export const APP_CONSTANTS = {
   MCP_TOKEN_EXPIRY_PRESETS: [30, 90, 365] as const,
   MCP_TOKEN_EXPIRY_DEFAULT_DAYS: 90,
   MCP_TOKEN_MAX_PER_USER: 10,
-  MCP_RATE_LIMIT_MAX: 60,
+  MCP_RATE_LIMIT_MAX: 100,
   MCP_RATE_LIMIT_WINDOW_MS: 60 * 60 * 1000,
   MCP_DEFAULT_JOB_TYPE: "Full-time",
   MCP_DEFAULT_STATUS: "draft",
@@ -271,6 +272,7 @@ export const APP_CONSTANTS = {
 export const SCHEDULER_CONSTANTS = {
   ENABLED: true,
   CRON_EXPRESSION: "0 * * * *", // Every hour at minute 0
+  PRUNE_CRON_EXPRESSION: "0 3 * * *", // Daily at 03:00; reads filter anyway
   STALE_RUN_TIMEOUT_MS: 15 * 60 * 1000, // 15 min; reaper cutoff for stuck runs
 } as const;
 
@@ -296,6 +298,17 @@ export const CONTACT_ROLES = [
   { label: "Referrer", value: "referrer" },
   { label: "Reference", value: "reference" },
 ] as const;
+
+export const COMPANY_SIZES = [
+  "1-10",
+  "11-50",
+  "51-200",
+  "201-1000",
+  "1001-5000",
+  "5000+",
+] as const;
+
+export const COMPANY_NOTES_MAX_LENGTH = 5000;
 
 export const JOB_STATUSES = [
   { label: "New", value: "new" },
@@ -422,3 +435,29 @@ export const SIDEBAR_LINKS = [
     devOnly: true,
   },
 ];
+
+export const NOTIFICATION_CONSTANTS = {
+  RETENTION_DAYS: 30,
+  POPOVER_LIMIT: 20,
+  PAGE_SIZE: 50,
+} as const;
+
+export const AI_USAGE_CONSTANTS = {
+  RETENTION_DAYS: 90,
+  RECENT_LIMIT: 50,
+  // Ollama drops the oldest context silently on overflow, so "near" is the
+  // only warning available.
+  CONTEXT_WARN_RATIO: 0.9,
+} as const;
+
+// Hard-coded until goals become a user setting
+export const DAILY_GOALS = {
+  JOBS_TARGET: 5,
+  HOURS_TARGET: 4,
+  JOBS_MIN: 1,
+  JOBS_MAX: 50,
+  HOURS_MIN: 1,
+  HOURS_MAX: 24,
+  // Months browsable before the current one
+  MONTHS_BACK: 11,
+} as const;

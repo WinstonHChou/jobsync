@@ -3,7 +3,7 @@ type: how-to
 title: Automations
 description: Setting up a scheduled ATS search over company job boards, filling in the filters and resume skills that make it return good matches, and handling the jobs it discovers.
 feature: automations
-tags: [automations, job search, scheduled search, greenhouse, lever, ashby, ats, company boards, watchlist, discovered jobs, match score, keywords, target titles, locations, resume skills, filters]
+tags: [automations, job search, scheduled search, greenhouse, lever, ashby, ats, company boards, watchlist, discovered jobs, match score, keywords, target titles, locations, resume skills, filters, notifications]
 aliases: [automated job search, job discovery, scheduled job search, job scraper, run a search, discovered jobs]
 status: stable
 stale_after: 2027-09-30
@@ -25,7 +25,7 @@ Open **Automations** in the sidebar and click **Create Automation**. The wizard 
 
 1. **Basics** — a name, and which job board (Greenhouse, Lever or Ashby) the companies live on.
 2. **Search** — the companies to track, then your filters: target job titles, keywords/skills, locations, and how many listings get full AI analysis per run. This is the step that decides how useful the automation is; see the next two sections.
-3. **Resume** — the resume every discovered job is scored against.
+3. **Resume** — the resume every discovered job is scored against. Resumes with fewer than two sections are shown greyed out with an alert icon until you fill them in under **Profile**; an attached file does not count.
 4. **Matching** — a match threshold. Only listings whose AI match score reaches it are saved; anything analyzed and scored below it is discarded.
 5. **Schedule** — the hour of the day the automation runs (server time). Only one automation may occupy an hour, so hours already taken are marked **In use** and rejected.
 6. **Review** — confirm and save.
@@ -101,3 +101,11 @@ From the list, use the **⋮** menu on any automation; from its own page, use th
 **Delete** removes the automation permanently, along with its runs and discovered jobs, after a confirmation. Accept anything you want to keep first.
 
 If an automation shows **Resume missing**, the resume it matched against was deleted — edit it and pick a new one before it can run again.
+
+## How do I know when a run finishes or a job board fails?
+
+The bell in the header tells you: it shows a count of unread notifications, red when something failed. The same count appears on **Notifications** in the account menu.
+
+Every finished run posts a summary of what it found, with a link to any new jobs; cancelled runs post nothing. A company board that could not be reached (removed, timed out or rate-limited) gets its own row, which comes back after each run until you fix it — **Edit watchlist** opens the automation's editor. If every board fails, the run is marked failed.
+
+The **×** in the bell only hides a row, and **Clear all** hides every row at once; the Notifications page (**View all notifications**, or the account menu) still lists it. On the page, **×** and **Clear read** delete for good, after asking you to confirm. Notifications are kept for 30 days.

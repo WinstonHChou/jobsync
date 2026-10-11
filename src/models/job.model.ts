@@ -108,6 +108,9 @@ export interface Company {
   websiteUrl?: string | null;
   careersUrl?: string | null;
   industry?: string | null;
+  linkedinUrl?: string | null;
+  size?: string | null;
+  notes?: string | null;
   _count?: {
     jobsApplied: number;
     jobsRejected?: number;
@@ -163,6 +166,32 @@ export enum WORKPLACE_TYPES {
   HYBRID = "Hybrid",
   ONSITE = "Onsite",
 }
+
+// Jobs-page popover filters. Values are stored codes (FT, REMOTE) and status
+// values; OR within a field, AND across fields.
+export type JobFacets = {
+  statuses: string[];
+  acceptedDiscovered: boolean;
+  jobTypes: string[];
+  workplaces: string[];
+  includeDismissed: boolean;
+};
+
+// Deep-link filters from the Library tables, kept separate from the popover.
+export type JobListScope = {
+  companyValue?: string;
+  appliedOnly?: boolean;
+  titleValue?: string;
+  locationValue?: string;
+  sourceValue?: string;
+};
+
+export type JobFilterCounts = {
+  total: number;
+  // Keyed by JobStatus.id.
+  statusCounts: Record<string, number>;
+  acceptedDiscovered: number;
+};
 
 // Matches free-text input against a fixed enum, ignoring case and separators,
 // and returns its [key, label] pair. These are closed sets, so — unlike

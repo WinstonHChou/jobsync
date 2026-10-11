@@ -6,7 +6,7 @@ import { AddResumeSectionRef } from "./AddResumeSection";
 import ContactInfoCard from "./ContactInfoCard";
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { toastSuccess, toastError } from "@/lib/toast";
+import { toastSuccess, toastError, toastActionResult } from "@/lib/toast";
 import SummarySectionCard from "./SummarySectionCard";
 import ExperienceCard from "./ExperienceCard";
 import EducationCard from "./EducationCard";
@@ -17,7 +17,11 @@ import { useAgentChat } from "@/components/agent/AgentChatProvider";
 import type { ResumeReviewData } from "@/models/ai.schemas";
 import { ExportPdfDialog } from "./ExportPdfDialog";
 import { Sparkles, FileText } from "lucide-react";
-import { deleteSkillsSection, setDefaultResume } from "@/actions/profile.actions";
+import {
+  deleteCertification,
+  deleteSkillsSection,
+  setDefaultResume,
+} from "@/actions/profile.actions";
 import { DeleteAlertDialog } from "../DeleteAlertDialog";
 import { ResumeHeader } from "./resume-container/ResumeHeader";
 import { ImportReviewBanner } from "./resume-container/ImportReviewBanner";
@@ -163,11 +167,10 @@ function ResumeContainer({
   const handleDeleteSkillsSection = async () => {
     if (!skillsSection?.id) return;
     const result = await deleteSkillsSection(skillsSection.id);
-    if (!result.success) {
-      toastError(result.message);
-    } else {
-      router.refresh();
-    }
+    toastActionResult(result, {
+      success: "Skills section has been deleted successfully",
+      onSuccess: () => router.refresh(),
+    });
   };
 
   const openCertificationDialogForEdit = (certificationId: string) => {
@@ -179,6 +182,13 @@ function ResumeContainer({
         ),
     };
     resumeSectionRef.current?.openCertificationDialog(section);
+  };
+  const handleDeleteCertification = async (certificationId: string) => {
+    const result = await deleteCertification(certificationId);
+    toastActionResult(result, {
+      success: "Certification has been deleted successfully",
+      onSuccess: () => router.refresh(),
+    });
   };
 
   const isEmptyResume =
@@ -294,6 +304,7 @@ function ResumeContainer({
         <CertificationCard
           certificationSection={certificationSection}
           openDialogForEdit={openCertificationDialogForEdit}
+          onDelete={handleDeleteCertification}
         />
       )}
 
