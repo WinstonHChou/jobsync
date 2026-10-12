@@ -1,10 +1,11 @@
 import { z } from "zod";
+import { parseWorkdayBoardUrl } from "@/lib/workdayBoard";
 import { APP_CONSTANTS } from "@/lib/constants";
 // Deep-import (NOT the barrel) — utils.ts is pure; the barrel pulls scraper
 // network code into the client bundle via this file's client consumers.
 import { ATS_TOKEN_REGEX } from "@/lib/scraper/utils";
 
-export const JobBoardSchema = z.enum(["greenhouse", "lever", "ashby"]);
+export const JobBoardSchema = z.enum(["greenhouse", "lever", "ashby", "workday"]);
 
 export const AutomationStatusSchema = z.enum(["active", "paused"]);
 
@@ -62,10 +63,21 @@ export const AshbySourceConfigSchema = GreenhouseSourceConfigSchema.extend({
     .max(APP_CONSTANTS.ATS_MAX_COMPANIES),
 });
 
+export const WorkdayCompanySchema = GreenhouseCompanySchema.extend({
+  token: z.string().min(1).max(2048)
+    .refine((value) => parseWorkdayBoardUrl(value) !== null, "Enter a valid HTTPS myworkdayjobs.com careers URL")
+    .transform((value) => parseWorkdayBoardUrl(value)!.url),
+});
+
+export const WorkdaySourceConfigSchema = GreenhouseSourceConfigSchema.extend({
+  companies: z.array(WorkdayCompanySchema).max(APP_CONSTANTS.ATS_MAX_COMPANIES),
+});
+
 export const SourceConfigSchema = z.object({
   greenhouse: GreenhouseSourceConfigSchema.optional(),
   lever: LeverSourceConfigSchema.optional(),
   ashby: AshbySourceConfigSchema.optional(),
+  workday: WorkdaySourceConfigSchema.optional(),
 });
 
 export const CreateAutomationSchema = z

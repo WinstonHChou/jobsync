@@ -10,6 +10,8 @@ export type { LeverPosting, LeverCompany, LeverHost } from "./lever/types";
 export { fetchAshbyBoardJobs, searchAshbyJobs } from "./ashby";
 export { mapAshbyJob } from "./ashby/mapper";
 export type { AshbyJob, AshbyCompany } from "./ashby/types";
+export { searchWorkdayJobs, fetchWorkdayListings, hydrateWorkdayJobs } from "./workday";
+export { mapWorkdayJob } from "./workday/mapper";
 export { ATS_PROVIDERS } from "./ats/registry";
 export type { AtsProvider, AtsHost } from "./ats/types";
 export { scoreJob, passesFloor, locationMatches } from "./ats/rank";

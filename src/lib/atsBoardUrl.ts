@@ -1,3 +1,4 @@
+import { parseWorkdayBoardUrl } from "@/lib/workdayBoard";
 import { APP_CONSTANTS } from "@/lib/constants";
 import type { JobBoard, LeverHost } from "@/models/automation.model";
 
@@ -8,6 +9,9 @@ export function companyBoardUrl(
   jobBoard: JobBoard,
   company: { token: string; host?: LeverHost },
 ): string {
+  if (jobBoard === "workday") {
+    return parseWorkdayBoardUrl(company.token)?.url ?? "";
+  }
   if (jobBoard === "lever") {
     const base =
       company.host === "eu"

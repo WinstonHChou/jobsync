@@ -134,6 +134,8 @@ Set up automations that search for new jobs on a schedule and AI-match them agai
 
 - **Ashby** — same company-tracking workflow, backed by a built-in directory of 1,860+ companies (or paste a board URL). No API key required.
 
+- **Workday** — paste a company's `https://<tenant>.wdN.myworkdayjobs.com/<site>` careers URL to monitor its public openings. Each run pages through listings, removes jobs already saved, and fetches full descriptions for new jobs before ranking and AI matching. Includes multiple locations where provided. No Workday login or API key required. Add boards directly in the automation wizard or under **Library → Companies → Workday** to build a watchlist.
+
 More job board sources are on the way. Discovered jobs are surfaced for review — accept the ones you like to promote them into your job tracker, or dismiss the rest.
 
 ### MCP Server (AI Agent Integration)

@@ -4,6 +4,7 @@ import { handleError } from "@/lib/utils";
 import { canonicalizeEntityValue } from "@/lib/jobs/canonicalize";
 import type { JobBoard, LeverHost } from "@/models/automation.model";
 import type { Company } from "@/models/job.model";
+import { WorkdayCompanySchema } from "@/models/automation.schema";
 import { requireUser } from "../shared";
 
 export type WatchBoardResult =
@@ -40,6 +41,11 @@ export const watchBoardCompany = async (
 ): Promise<WatchBoardResult> => {
   try {
     const user = await requireUser();
+    if (provider === "workday") {
+      const parsed = WorkdayCompanySchema.safeParse(board);
+      if (!parsed.success) return { success: false, message: "Enter a valid Workday careers URL and company name." };
+      board = parsed.data;
+    }
 
     const value = canonicalizeEntityValue(board.name.trim(), {
       stripLegalSuffix: true,

@@ -21,6 +21,11 @@ export const PROVIDER_META: Record<
     urlHint: "Or paste a jobs.lever.co link or token",
     searchExample: "Netflix",
   },
+  workday: {
+    label: "Workday",
+    urlHint: "Paste a company’s myworkdayjobs.com careers URL",
+    searchExample: "a watched company",
+  },
   ashby: {
     label: "Ashby",
     urlHint: "Or paste a jobs.ashbyhq.com link or token",

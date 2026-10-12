@@ -40,6 +40,8 @@ vi.mock("@/lib/scraper/lever", () => ({
   searchLeverJobs: vi.fn(),
 }));
 
+vi.mock("@/lib/scraper/workday", () => ({ searchWorkdayJobs: vi.fn(), hydrateWorkdayJobs: vi.fn() }));
+
 vi.mock("@/lib/api-key-resolver", () => ({
   resolveApiKey: vi.fn().mockResolvedValue(undefined),
 }));
@@ -62,6 +64,7 @@ vi.mock("@/lib/ai", async (orig) => {
 import { runAutomation } from "@/lib/scraper/runner";
 import { searchGreenhouseJobs } from "@/lib/scraper/greenhouse";
 import { searchLeverJobs } from "@/lib/scraper/lever";
+import { searchWorkdayJobs, hydrateWorkdayJobs } from "@/lib/scraper/workday";
 import { generateText } from "ai";
 import { recordRunNotifications } from "@/lib/notifications/record";
 import type { Automation } from "@/models/automation.model";
@@ -276,6 +279,81 @@ describe("runAutomation (lever)", () => {
 
     const createArg = (prisma.job.create as any).mock.calls[0][0];
     expect("tags" in createArg.data).toBe(false);
+  });
+
+  describe("Workday integration", () => {
+    const token = "https://acme.wd5.myworkdayjobs.com/External";
+    const newJob = makeJob("Developer", "", { url: `${token}/job/NY/Developer_new` });
+    const savedJob = makeJob("Developer", "", { url: `${token}/job/NY/Developer_saved` });
+    const hydrated = { ...newJob, description: "Build applications with TypeScript.", workplaceType: "HYBRID" };
+    const automation: Automation = {
+      ...leverAutomation, id: "auto-workday", jobBoard: "workday",
+      sourceConfig: JSON.stringify({ workday: { companies: [{ name: "Acme", token }], targetTitles: [], keywords: ["TypeScript"] } }),
+    };
+
+    it("deduplicates summaries before hydration and ranks the full description", async () => {
+      vi.mocked(searchWorkdayJobs).mockResolvedValue({ jobs: [newJob, savedJob], errors: [] });
+      vi.mocked(hydrateWorkdayJobs).mockResolvedValue({ jobs: [hydrated], errors: [] });
+      vi.mocked(prisma.job.findMany).mockResolvedValue([{ id: "saved", jobUrl: savedJob.url, JobTitle: { label: savedJob.title }, Company: { label: "Acme" }, Location: { label: "Remote" } }] as never);
+      const result = await runAutomation(automation);
+      expect(result.status).toBe("completed");
+      expect(result.jobsSearched).toBe(2);
+      expect(result.jobsDeduplicated).toBe(1);
+      expect(result.jobsSaved).toBe(1);
+      expect(hydrateWorkdayJobs).toHaveBeenCalledWith([newJob], expect.objectContaining({ signal: expect.any(AbortSignal) }));
+      expect(prisma.job.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ description: hydrated.description, workplaceType: "HYBRID" }) }));
+    });
+
+    it("skips hydration when every summary is already saved", async () => {
+      vi.mocked(searchWorkdayJobs).mockResolvedValue({ jobs: [savedJob], errors: [] });
+      vi.mocked(prisma.job.findMany).mockResolvedValue([{ id: "saved", jobUrl: savedJob.url, JobTitle: { label: savedJob.title }, Company: { label: "Acme" }, Location: { label: "Remote" } }] as never);
+      expect((await runAutomation(automation)).status).toBe("completed");
+      expect(hydrateWorkdayJobs).not.toHaveBeenCalled();
+      expect(prisma.job.create).not.toHaveBeenCalled();
+    });
+
+    it("processes partial listings even when the only board reports a retrieval limit", async () => {
+      vi.mocked(searchWorkdayJobs).mockResolvedValue({ jobs: [newJob], errors: [{ token, reason: "Listing limit reached" }] });
+      vi.mocked(hydrateWorkdayJobs).mockResolvedValue({ jobs: [hydrated], errors: [] });
+      const result = await runAutomation(automation);
+      expect(result.status).toBe("completed_with_errors");
+      expect(result.jobsSaved).toBe(1);
+      expect(result.errorMessage).toBe("1 of 1 boards reported errors");
+    });
+
+    it("reports partial descriptions and combines errors for the same company", async () => {
+      vi.mocked(searchWorkdayJobs).mockResolvedValue({ jobs: [newJob], errors: [{ token, reason: "Listing limit reached" }] });
+      vi.mocked(hydrateWorkdayJobs).mockResolvedValue({ jobs: [hydrated], errors: [{ token, reason: "1 description skipped" }] });
+      const result = await runAutomation(automation);
+      expect(result.status).toBe("completed_with_errors");
+      expect(result.jobsSaved).toBe(1);
+      const finalized = vi.mocked(recordRunNotifications).mock.calls[0][1];
+      expect(finalized.boardErrors).toEqual([{ token, name: "Acme", reason: "Listing limit reached; 1 description skipped" }]);
+    });
+
+    it("fails if all descriptions fail, without saving summaries", async () => {
+      vi.mocked(searchWorkdayJobs).mockResolvedValue({ jobs: [newJob], errors: [] });
+      vi.mocked(hydrateWorkdayJobs).mockResolvedValue({ jobs: [], errors: [{ token, reason: "rate limited" }] });
+      const result = await runAutomation(automation);
+      expect(result.status).toBe("failed");
+      expect(result.errorMessage).toBe("No job descriptions could be retrieved");
+      expect(prisma.job.create).not.toHaveBeenCalled();
+    });
+
+    it("finishes cleanly when the new postings have closed", async () => {
+      vi.mocked(searchWorkdayJobs).mockResolvedValue({ jobs: [newJob], errors: [] });
+      vi.mocked(hydrateWorkdayJobs).mockResolvedValue({ jobs: [], errors: [] });
+      expect((await runAutomation(automation)).status).toBe("completed");
+      expect(prisma.job.create).not.toHaveBeenCalled();
+    });
+
+    it("cancels during description fetching without writing jobs", async () => {
+      const controller = new AbortController();
+      vi.mocked(searchWorkdayJobs).mockResolvedValue({ jobs: [newJob], errors: [] });
+      vi.mocked(hydrateWorkdayJobs).mockImplementation(async () => { controller.abort(); throw new DOMException("Aborted", "AbortError"); });
+      expect((await runAutomation(automation, controller.signal)).status).toBe("cancelled");
+      expect(prisma.job.create).not.toHaveBeenCalled();
+    });
   });
 
   describe("board failures", () => {

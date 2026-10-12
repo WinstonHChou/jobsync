@@ -9,7 +9,8 @@ export type CompanyScope =
   | "watchlist"
   | "board:greenhouse"
   | "board:lever"
-  | "board:ashby";
+  | "board:ashby"
+  | "board:workday";
 
 const SCOPES: CompanyScope[] = [
   "mine",
@@ -17,6 +18,7 @@ const SCOPES: CompanyScope[] = [
   "board:greenhouse",
   "board:lever",
   "board:ashby",
+  "board:workday",
 ];
 
 export function boardProvider(scope: CompanyScope): JobBoard | null {

@@ -173,7 +173,7 @@ export function CompanyPicker({
                           )}
                         />
                         <span>{c.name}</span>
-                        <span className="ml-2 text-xs text-muted-foreground">
+                        <span className="ml-2 truncate text-xs text-muted-foreground">
                           {c.token}
                         </span>
                       </CommandItem>
@@ -200,7 +200,7 @@ export function CompanyPicker({
                         )}
                       />
                       <span>{c.name}</span>
-                      <span className="ml-2 text-xs text-muted-foreground">
+                      <span className="ml-2 truncate text-xs text-muted-foreground">
                         {c.token}
                       </span>
                       <a
@@ -249,6 +249,11 @@ export function CompanyPicker({
         disabled={atLimit}
         onResolved={onAdd}
       />
+      {provider === "workday" && (
+        <p className="text-sm text-muted-foreground">
+          Add a company’s Workday careers URL above, or choose a company from your watchlist.
+        </p>
+      )}
       <p className="text-sm text-muted-foreground">
         Select {meta.label} companies to monitor their job boards for new
         openings.

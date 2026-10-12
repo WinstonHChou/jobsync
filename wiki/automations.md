@@ -15,7 +15,7 @@ stale_after: 2027-09-30
 
 An automation is a saved search that runs once a day and brings new job postings to you. It reads the public job boards of the companies you pick, drops the listings that have nothing to do with what you asked for, sends the most promising ones to your AI provider to be scored against one of your resumes, and saves the results as **discovered jobs** you can accept into your tracker or dismiss.
 
-Everything is company-centric: JobSync reads job boards hosted by **Greenhouse**, **Lever** and **Ashby**, so you choose employers rather than searching the whole internet. One automation covers one of those three boards; create a second automation if you want to track companies on another.
+Everything is company-centric: JobSync reads job boards hosted by **Greenhouse**, **Lever**, **Ashby** and **Workday**, so you choose employers rather than searching the whole internet. One automation covers one of those four sources; create a second automation if you want to track companies on another.
 
 An automation needs an AI provider and model set under **Settings → AI Provider**, and a resume in your profile to match against.
 
@@ -23,7 +23,7 @@ An automation needs an AI provider and model set under **Settings → AI Provide
 
 Open **Automations** in the sidebar and click **Create Automation**. The wizard has six steps:
 
-1. **Basics** — a name, and which job board (Greenhouse, Lever or Ashby) the companies live on.
+1. **Basics** — a name, and which job board (Greenhouse, Lever, Ashby or Workday) the companies live on.
 2. **Search** — the companies to track, then your filters: target job titles, keywords/skills, locations, and how many listings get full AI analysis per run. This is the step that decides how useful the automation is; see the next two sections.
 3. **Resume** — the resume every discovered job is scored against. Resumes with fewer than two sections are shown greyed out with an alert icon until you fill them in under **Profile**; an attached file does not count.
 4. **Matching** — a match threshold. Only listings whose AI match score reaches it are saved; anything analyzed and scored below it is discarded.
@@ -32,17 +32,21 @@ Open **Automations** in the sidebar and click **Create Automation**. The wizard 
 
 At least one company is required. Everything else has a working default, but defaults alone will not give you good results.
 
-If you have built a watchlist, the company picker in step 2 shows a **Watched** group at the top listing the companies you watch on that automation's job board, with an **Add all watched** button that selects them in one click. Only companies on the matching board appear — a watchlist spanning all three providers contributes a different subset to each automation.
+If you have built a watchlist, the company picker in step 2 shows a **Watched** group at the top listing the companies you watch on that automation's job board, with an **Add all watched** button that selects them in one click. Only companies on the matching board appear — a watchlist spanning multiple providers contributes a different subset to each automation.
 
 ## Which companies can I track, and how many?
 
-Up to **25 companies** per automation. In the Search step, open the company picker and type a name — JobSync searches an indexed directory of known Greenhouse, Lever and Ashby boards for that provider and you tick the ones you want. The count next to the label shows how many of your 25 slots are used.
+Track up to **25 companies** per automation. For Greenhouse, Lever and Ashby, search the built-in directory and select employers. The counter shows how many slots are used.
 
-If a company is not in the directory, add it by hand: paste its board URL (for example `https://boards.greenhouse.io/acme` or `https://jobs.lever.co/acme`) or just its board token into the field below the picker, and press **+**. JobSync resolves it, checks the board really exists, and adds it as a chip. Remove any company with the **×** on its chip.
+To add a company outside the directory, paste its board URL or token below the picker and press **+**. JobSync validates the board and adds a chip; remove it with **×**.
 
-You can also build a shortlist ahead of time. Open **Library → Companies**, switch the scope dropdown from **My Companies** to **Greenhouse**, **Lever** or **Ashby** under *Browse boards*, and you get the full directory of boards JobSync knows about for that provider — search it, and click **Watch** on any company you care about. Watched companies collect under the **Watchlist** scope, where each row links straight to the live board so you can check whether it is still posting.
+For **Workday**, paste a full careers URL, such as `https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite`. Locale-prefixed URLs and individual job links also work. Standard `myworkdayjobs.com` sites are supported; custom domains require their underlying Workday URL. No account or API key is needed.
 
-Watching a company adds it to your Library, so a company you already track just gains its board link — JobSync asks you to confirm that first. Unwatching only removes it from the watchlist; the company stays in your Library along with any jobs attached to it.
+Workday retrieves up to 2,000 listings per company, skips saved jobs, then fetches full descriptions before filtering and matching. Description fetching has a three-minute deadline. Retrieval limits and failures are reported; successful descriptions are processed and closed postings skipped.
+
+Under **Library → Companies**, select Greenhouse, Lever or Ashby to browse directories and **Watch** employers. Select **Workday** to add careers URLs. Added companies appear under **Watchlist**, with board links, and can be selected in the automation wizard.
+
+Watching a company adds it to your Library. Linking an existing company requires confirmation. Unwatching preserves the company and its jobs.
 
 ## How do I set up filters so the automation returns good results?
 

@@ -57,13 +57,15 @@ export async function runAtsRun(
       `${label} Fetching ${config.companies.length} companies...`,
     );
 
-    const { jobs, errors } = await provider.search(config.companies);
+    const { jobs, errors } = provider.hydrate
+      ? await provider.search(config.companies, { signal })
+      : await provider.search(config.companies);
 
     for (const err of errors) {
       automationLogger.log(
         automation.id,
         "warning",
-        `${label} Board '${err.token}' ${err.reason} — skipped`,
+        `${label} Board '${err.token}' ${err.reason}`,
       );
     }
 
@@ -75,7 +77,7 @@ export async function runAtsRun(
     }));
     const total = config.companies.length;
 
-    if (errors.length > 0 && errors.length === total) {
+    if (jobs.length === 0 && errors.length > 0 && errors.length === total) {
       const message = `All ${total} boards unreachable`;
       automationLogger.log(automation.id, "error", `${label} ${message}`);
       automationLogger.endRun(automation.id);
@@ -91,16 +93,17 @@ export async function runAtsRun(
       });
     }
 
-    const boardNote =
-      errors.length > 0 ? `${errors.length} of ${total} boards unreachable` : null;
-    // One place decides the terminal status for every completed path below.
-    const outcome = (aiError: string | null) => ({
-      status: aiError || boardNote ? ("completed_with_errors" as const) : ("completed" as const),
-      // Joined only for Run History; notifications read aiError directly.
-      errorMessage: [aiError, boardNote].filter(Boolean).join("; ") || undefined,
-      aiError: aiError ?? undefined,
-      boardErrors,
-    });
+    // Detail fetching can add board errors after the initial listing request.
+    const outcome = (aiError: string | null) => {
+      const boardNote = boardErrors.length > 0
+        ? `${boardErrors.length} of ${total} boards ${provider.hydrate ? "reported errors" : "unreachable"}` : null;
+      return {
+        status: aiError || boardNote ? ("completed_with_errors" as const) : ("completed" as const),
+        errorMessage: [aiError, boardNote].filter(Boolean).join("; ") || undefined,
+        aiError: aiError ?? undefined,
+        boardErrors,
+      };
+    };
 
     const jobsSearched = jobs.length;
     automationLogger.log(
@@ -112,7 +115,7 @@ export async function runAtsRun(
 
     // Dedup against existing jobs and within this batch.
     const existingKeys = await getExistingJobDedupeMap(automation.userId);
-    const dedupedJobs = dedupeJobs(jobs, existingKeys);
+    let dedupedJobs = dedupeJobs(jobs, existingKeys);
     const jobsDeduplicated = dedupedJobs.length;
 
     automationLogger.log(
@@ -139,6 +142,32 @@ export async function runAtsRun(
       });
     }
 
+    if (provider.hydrate) {
+      automationLogger.log(automation.id, "info", `${label} Fetching full descriptions for ${dedupedJobs.length} new jobs...`);
+      const hydrated = await provider.hydrate(dedupedJobs, { signal });
+      dedupedJobs = hydrated.jobs;
+      for (const error of hydrated.errors) {
+        automationLogger.log(automation.id, "warning", `${label} ${error.reason}`);
+        const existing = boardErrors.find((entry) => entry.token === error.token);
+        if (existing) existing.reason += `; ${error.reason}`;
+        else boardErrors.push({ ...error, name: nameByToken.get(error.token) ?? error.token });
+      }
+      if (dedupedJobs.length === 0) {
+        const failed = hydrated.errors.length > 0;
+        automationLogger.log(automation.id, failed ? "error" : "info",
+          `${label} ${failed ? "No job descriptions could be retrieved" : "New postings closed before their descriptions could be retrieved"}`);
+        automationLogger.endRun(automation.id);
+        return await finalizeRun(runId, {
+          ...outcome(null),
+          ...(failed ? { status: "failed", errorMessage: "No job descriptions could be retrieved" } : {}),
+          jobsSearched, jobsDeduplicated, jobsProcessed: 0, jobsMatched: 0, jobsSaved: 0,
+        });
+      }
+    }
+
+    // Summary-only providers derive IDF from the fully hydrated new postings;
+    // saved summaries contain no descriptions and would distort skill weights.
+    const corpus = provider.hydrate ? dedupedJobs : jobs;
     const resumeSkills = extractResumeSkills(resume);
     const skillTerms = buildSkillTerms(resume);
 
@@ -156,7 +185,7 @@ export async function runAtsRun(
     );
 
     const pipeline = runAtsPipeline(dedupedJobs, config, resumeSkills, {
-      corpus: jobs,
+      corpus,
       k: config.topK,
     });
 
@@ -215,8 +244,8 @@ export async function runAtsRun(
       // Re-rank the pre-dedup corpus so an exhausted board (everything that
       // matches is already saved) reads differently from a search that matches
       // nothing at all. Only pays for itself on this zero path.
-      const beforeDedup = runAtsPipeline(jobs, config, resumeSkills, {
-        corpus: jobs,
+      const beforeDedup = runAtsPipeline(corpus, config, resumeSkills, {
+        corpus,
         k: config.topK,
       });
       let reason: string;

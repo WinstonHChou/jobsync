@@ -111,6 +111,12 @@ function CompaniesContainer() {
           <CardContent>
             {provider && (
               <div className="mb-4">
+                {provider === "workday" && (
+                  <p className="mb-2 text-sm text-muted-foreground">
+                    Paste a company’s Workday careers URL to add it to your watchlist.
+                    Find added companies under Watchlist.
+                  </p>
+                )}
                 <JobBoardUrlAdd
                   provider={provider}
                   placeholder={PROVIDER_META[provider].urlHint}

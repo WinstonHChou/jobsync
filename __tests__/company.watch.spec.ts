@@ -164,6 +164,22 @@ describe("watchBoardCompany", () => {
     });
   });
 
+  it("stores a canonical Workday URL including its shard and site", async () => {
+    vi.mocked(prisma.company.findFirst).mockResolvedValue(null);
+    vi.mocked(prisma.company.create).mockResolvedValue({ id: "id" } as never);
+    const token = "https://acme.wd5.myworkdayjobs.com/External";
+    const result = await watchBoardCompany("workday", { name: "Acme", token: token.replace("/External", "/en-US/External") + "?source=alert" });
+    expect(result.success).toBe(true);
+    expect(prisma.company.create).toHaveBeenCalledWith({ data: expect.objectContaining({ atsProvider: "workday", atsToken: token, atsHost: null }) });
+  });
+
+  it("rejects unsafe Workday URLs before any database write", async () => {
+    const result = await watchBoardCompany("workday", { name: "Acme", token: "https://localhost/External" });
+    expect(result.success).toBe(false);
+    expect(prisma.company.findFirst).not.toHaveBeenCalled();
+    expect(prisma.company.create).not.toHaveBeenCalled();
+  });
+
   it("returns Not authenticated with no user", async () => {
     (getCurrentUser as any).mockResolvedValue(null);
     await expect(watchBoardCompany("greenhouse", board)).resolves.toEqual({

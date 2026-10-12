@@ -143,6 +143,15 @@ export const APP_CONSTANTS = {
   ASHBY_FETCH_TIMEOUT_MS: 25_000, // per-board AbortController timeout
   ASHBY_FETCH_CONCURRENCY: 5,
 
+  // Workday public career sites: summaries, then descriptions for new jobs.
+  WORKDAY_PAGE_LIMIT: 20,
+  WORKDAY_MAX_PAGES: 100, // up to 2,000 listings per board, with a warning at the cap
+  WORKDAY_BOARD_CONCURRENCY: 2,
+  WORKDAY_DETAIL_CONCURRENCY: 4,
+  WORKDAY_REQUEST_TIMEOUT_MS: 15_000,
+  WORKDAY_LIST_TIMEOUT_MS: 60_000,
+  WORKDAY_DETAIL_TIMEOUT_MS: 180_000,
+
   // MCP server settings
   MCP_DUPLICATE_WINDOW_DAYS: 30,
   MCP_TOKEN_EXPIRY_PRESETS: [30, 90, 365] as const,

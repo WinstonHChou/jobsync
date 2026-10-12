@@ -1,5 +1,7 @@
 "use server";
 
+import { parseWorkdayBoardUrl } from "@/lib/workdayBoard";
+import { fetchWorkdayListings } from "@/lib/scraper/workday";
 import { getCurrentUser } from "@/utils/user.utils";
 import { APP_CONSTANTS } from "@/lib/constants";
 import { ATS_TOKEN_REGEX } from "@/lib/scraper/utils";
@@ -69,6 +71,7 @@ export async function resolveAtsBoard(
   if (provider === "greenhouse") return resolveGreenhouse(input);
   if (provider === "lever") return resolveLever(input);
   if (provider === "ashby") return resolveAshby(input);
+  if (provider === "workday") return resolveWorkday(input);
   return { success: false, message: "Unsupported provider" };
 }
 
@@ -268,4 +271,15 @@ async function resolveAshby(input: string): Promise<ResolveResult> {
   } catch {
     return { success: false, message: "Could not reach Ashby" };
   }
+}
+
+// Workday requires a full URL: the tenant alone does not identify a careers site.
+async function resolveWorkday(input: string): Promise<ResolveResult> {
+  const board = parseWorkdayBoardUrl(input);
+  if (!board) return { success: false, message: "Paste a full HTTPS myworkdayjobs.com careers URL" };
+  // The first page is enough to validate a board, including a valid empty board.
+  const result = await fetchWorkdayListings(humanizeToken(board.tenant), board.url, { firstPageOnly: true });
+  const error = result.errors[0];
+  if (error) return { success: false, message: error.reason };
+  return { success: true, name: humanizeToken(board.tenant), token: board.url };
 }
