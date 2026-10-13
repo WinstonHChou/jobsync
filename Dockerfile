@@ -28,6 +28,14 @@ RUN npm run build
 FROM base AS runner
 WORKDIR /app
 
+# Optional Git/LaTeX tooling for a mounted, separately maintained Resume-CV repo.
+# Kept opt-in because the extra font collection substantially enlarges the image.
+ARG ENABLE_RESUME_REPO=false
+RUN if [ "$ENABLE_RESUME_REPO" = "true" ]; then \
+      apk add --no-cache git util-linux-misc texlive texlive-latexextra \
+        texmf-dist-fontsrecommended texmf-dist-fontsextra; \
+    fi
+
 # Set environment variables
 ENV NEXT_TELEMETRY_DISABLED=1
 

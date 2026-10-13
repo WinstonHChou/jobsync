@@ -40,6 +40,7 @@ model User {
   Notification   Notification[]
   aiCalls        AiCall[]
   ChatConversation ChatConversation?
+  resumeOptimizations ResumeOptimization[]
   defaultResumeId String?
   defaultResume   Resume?          @relation("UserDefaultResume", fields: [defaultResumeId], references: [id], onDelete: SetNull)
 }
@@ -435,6 +436,7 @@ model JobStagePrepQuestion {
 }
 
 model Job {
+  resumeOptimizations ResumeOptimization[]
   id          String      @id @default(uuid())
   userId      String
   User        User        @relation(fields: [userId], references: [id])
@@ -485,6 +487,22 @@ model Job {
   // Also has a hand-written partial unique index (not expressible here):
   // UNIQUE(userId, jobUrl) WHERE automationId IS NOT NULL
   // See migrations/20260710000002_job_automation_url_unique
+}
+
+// Versioned, user-reviewed LaTeX tailoring drafts. Source snapshots and PDF
+// artifacts are persisted independently of the overwrite-only Job.matchData.
+model ResumeOptimization {
+  id        String   @id @default(uuid())
+  userId    String
+  jobId     String
+  revision  Int      @default(0)
+  data      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([userId, jobId, createdAt])
 }
 
 model ActivityType {

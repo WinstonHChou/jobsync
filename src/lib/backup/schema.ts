@@ -387,6 +387,7 @@ export const BackupDataSchema = z.object({
   CoverLetter: group(CoverLetter),
   Automation: group(Automation),
   Job: group(Job),
+  ResumeOptimization: group(z.object({ id, jobId: id, revision: int, data: z.string().max(10_000_000), createdAt: dt, updatedAt: dt })),
   Note: group(Note),
   Contact: group(Contact),
   JobContact: group(JobContact),

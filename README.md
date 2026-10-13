@@ -140,6 +140,27 @@ Set up automations that search for new jobs on a schedule and AI-match them agai
 
 More job board sources are on the way. Discovered jobs are surfaced for review — accept the ones you like to promote them into your job tracker, or dismiss the rest.
 
+### LaTeX Resume Tailoring
+
+Keep your LaTeX resume in its own Git repository and use **Tailor LaTeX resume** on a job's details page to create or continue a job branch. Review AI suggestions, edit sections and content, build the original template's PDF, compare match scores, and commit/export the selected version. Drafts and results have their own history and are included in JobSync backups. See [the tailoring guide](wiki/resume-tailoring.md).
+
+For a native Linux deployment, configure `RESUME_REPO_PATH` and `RESUME_REPO_ALLOWED_EMAILS`, and install Git, `prlimit` (util-linux), pdfLaTeX, and the template's packages/fonts. `RESUME_LATEX_BINARY` selects the compiler; `RESUME_TEXMF_HOME` optionally points to private font/package files. Builds run in temporary directories with shell escape disabled, restricted TeX file access, memory/CPU/file-size limits, and bounded concurrency. Use a restricted deployment account with access only to the required repositories and data.
+
+For Docker, set these in `.env` on the **Docker host**:
+
+```dotenv
+RESUME_REPO_HOST_PATH=/absolute/host/path/Resume-CV
+RESUME_REPO_ALLOWED_EMAILS=your-login@example.com
+```
+
+Then build/start with the opt-in tooling image:
+
+```sh
+docker compose -f docker-compose.yml -f docker-compose.resume.yml up --build -d
+```
+
+The override mounts Resume-CV at `/resume-repo` and installs Git, LaTeX, fonts, and resource controls. The extra font collection makes this image substantially larger. Docker startup applies the additive optimization-history migration. The app's UID/GID 1001 needs read access to source and write access to the mounted repository's `.git` directory; set appropriate host group permissions or ACLs. Do not expose this private repository to accounts outside the allowlist. The interface creates local commits; pushing and merging remain manual. Arbitrary LaTeX templates and automatic conflict merging are outside this first version. AI analysis uses separate streamed baseline and suggestion requests with progress updates and heartbeats; configure reverse proxies to pass streams without buffering. `RESUME_AI_TIMEOUT_MS` sets the per-stage deadline (default 180000 ms, range 30000 to 300000). Suggestions request up to six concise edits with a separate 16384-token output budget, including any model reasoning. `RESUME_SUGGESTION_MAX_TOKENS` adjusts that budget (4096 to 32768); ensure prompt plus output fits your model server's context limit.
+
 ### MCP Server (AI Agent Integration)
 
 JobSync exposes an MCP server so AI agents (Claude Desktop, Hermes, OpenClaw, etc.) can add job applications and Question Bank entries directly, with your approval.

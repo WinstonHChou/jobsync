@@ -88,6 +88,9 @@ export function JobDetailsHeader({
         </div>
       </div>
       <div className="flex flex-wrap justify-end gap-2">
+        <Button variant="outline" asChild>
+          <Link href={`/dashboard/myjobs/${job.id}/optimize`}>Tailor LaTeX resume</Link>
+        </Button>
         {updateStatusMenu}
         <Button
           variant="outline"

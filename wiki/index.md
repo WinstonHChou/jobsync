@@ -17,5 +17,6 @@ JobSync tracks job applications, resumes and the work you do around them. These 
 - [Activities](./activities.md) — time the work you do with a start/stop timer and breaks, log time after the fact, and see your hours on the Dashboard.
 - [Data Backup](./backup.md) — download everything as one zip, import it on any instance, and undo an import.
 - [MCP Access](./mcp.md) — connect an external AI agent such as Claude Desktop, generate and revoke access tokens, and what the agent can do once connected.
+- [LaTeX Resume Tailoring](./resume-tailoring.md) — review job-specific source edits, build the PDF, and commit a variant in a separate Git repository.
 
 Installation, Docker and environment variables are in the [project README](https://github.com/Gsync/jobsync#readme).
