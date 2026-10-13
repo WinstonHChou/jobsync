@@ -2,7 +2,7 @@ import { APP_CONSTANTS } from "@/lib/constants";
 import type { CreateAutomationInput } from "@/models/automation.schema";
 import type { AtsConfigValue } from "../AtsSearchStep";
 
-export type AtsKey = "greenhouse" | "lever" | "ashby" | "workday";
+export type AtsKey = "greenhouse" | "lever" | "ashby" | "workday" | "company-careers";
 
 export const EMPTY_ATS: AtsConfigValue = {
   companies: [],
@@ -34,7 +34,7 @@ export function parseEditSourceConfig(
   if (!sc) return undefined;
   try {
     const parsed = JSON.parse(sc);
-    return parsed?.greenhouse || parsed?.lever || parsed?.ashby || parsed?.workday
+    return parsed?.greenhouse || parsed?.lever || parsed?.ashby || parsed?.workday || parsed?.["company-careers"]
       ? parsed
       : undefined;
   } catch {

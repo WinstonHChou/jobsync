@@ -59,7 +59,7 @@ export function CompaniesScopeSelect({ scope, onScopeChange }: Props) {
           {ATS_BOARDS.map((provider) => (
             <SelectItem key={provider} value={`board:${provider}`}>
               {PROVIDER_META[provider].label}
-              {provider !== "workday" && counts?.[provider] !== undefined && (
+              {provider !== "workday" && provider !== "company-careers" && counts?.[provider] !== undefined && (
                 <span className="ml-2 text-xs text-muted-foreground">
                   {counts[provider].toLocaleString()}
                 </span>

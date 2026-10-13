@@ -3,6 +3,7 @@ import { searchGreenhouseJobs } from "../greenhouse";
 import { searchLeverJobs } from "../lever";
 import { searchAshbyJobs } from "../ashby";
 import { searchWorkdayJobs, hydrateWorkdayJobs } from "../workday";
+import { searchCompanyCareers, hydrateCompanyCareers } from "../company-careers";
 import type { AtsProvider } from "./types";
 
 // Server-only: imports the real network-calling search fns (fetch, p-limit).
@@ -16,5 +17,6 @@ export const ATS_PROVIDERS: Partial<Record<JobBoard, AtsProvider>> = {
   },
   lever: { id: "lever", label: "Lever", search: searchLeverJobs },
   ashby: { id: "ashby", label: "Ashby", search: searchAshbyJobs },
+  "company-careers": { id: "company-careers", label: "Company careers", search: searchCompanyCareers, hydrate: hydrateCompanyCareers },
   workday: { id: "workday", label: "Workday", search: searchWorkdayJobs, hydrate: hydrateWorkdayJobs },
 };

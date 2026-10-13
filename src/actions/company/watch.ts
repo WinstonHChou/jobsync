@@ -4,7 +4,7 @@ import { handleError } from "@/lib/utils";
 import { canonicalizeEntityValue } from "@/lib/jobs/canonicalize";
 import type { JobBoard, LeverHost } from "@/models/automation.model";
 import type { Company } from "@/models/job.model";
-import { WorkdayCompanySchema } from "@/models/automation.schema";
+import { CompanyCareersCompanySchema, WorkdayCompanySchema } from "@/models/automation.schema";
 import { requireUser } from "../shared";
 
 export type WatchBoardResult =
@@ -41,6 +41,11 @@ export const watchBoardCompany = async (
 ): Promise<WatchBoardResult> => {
   try {
     const user = await requireUser();
+    if (provider === "company-careers") {
+      const parsed = CompanyCareersCompanySchema.safeParse(board);
+      if (!parsed.success) return { success: false, message: "Enter a supported public HTTPS careers URL and company name." };
+      board = parsed.data;
+    }
     if (provider === "workday") {
       const parsed = WorkdayCompanySchema.safeParse(board);
       if (!parsed.success) return { success: false, message: "Enter a valid Workday careers URL and company name." };

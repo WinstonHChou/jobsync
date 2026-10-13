@@ -136,6 +136,8 @@ Set up automations that search for new jobs on a schedule and AI-match them agai
 
 - **Workday** — paste a company's `https://<tenant>.wdN.myworkdayjobs.com/<site>` careers URL to monitor its public openings. Each run pages through listings, removes jobs already saved, and fetches full descriptions for new jobs before ranking and AI matching. Includes multiple locations where provided. No Workday login or API key required. Add boards directly in the automation wizard or under **Library → Companies → Workday** to build a watchlist.
 
+- **Company careers URL** — monitor Google, Phenom sites (including BCG), Waymo, and compatible custom company pages. Paste a public HTTPS careers search URL in the wizard or **Library → Companies → Company careers**. Automatically reuses supported ATS boards and reads structured job data on other sites. Preserves Google/Phenom search filters; use automation filters for ATS-backed sites. Browser-only sites and Meta are not supported yet.
+
 More job board sources are on the way. Discovered jobs are surfaced for review — accept the ones you like to promote them into your job tracker, or dismiss the rest.
 
 ### MCP Server (AI Agent Integration)

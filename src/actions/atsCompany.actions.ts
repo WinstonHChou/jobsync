@@ -1,5 +1,6 @@
 "use server";
 
+import { resolveCompanyCareers } from "@/lib/scraper/company-careers";
 import { parseWorkdayBoardUrl } from "@/lib/workdayBoard";
 import { fetchWorkdayListings } from "@/lib/scraper/workday";
 import { getCurrentUser } from "@/utils/user.utils";
@@ -72,6 +73,10 @@ export async function resolveAtsBoard(
   if (provider === "lever") return resolveLever(input);
   if (provider === "ashby") return resolveAshby(input);
   if (provider === "workday") return resolveWorkday(input);
+  if (provider === "company-careers") {
+    try { return { success: true, ...await resolveCompanyCareers(input) }; }
+    catch (error) { return { success: false, message: error instanceof Error ? error.message : "Could not reach careers site" }; }
+  }
   return { success: false, message: "Unsupported provider" };
 }
 

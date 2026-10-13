@@ -1,3 +1,4 @@
+import { normalizeCareerSiteUrl, requiresCareerSiteAuthorization } from "@/lib/careerSiteUrl";
 import { z } from "zod";
 import { parseWorkdayBoardUrl } from "@/lib/workdayBoard";
 import { APP_CONSTANTS } from "@/lib/constants";
@@ -5,7 +6,7 @@ import { APP_CONSTANTS } from "@/lib/constants";
 // network code into the client bundle via this file's client consumers.
 import { ATS_TOKEN_REGEX } from "@/lib/scraper/utils";
 
-export const JobBoardSchema = z.enum(["greenhouse", "lever", "ashby", "workday"]);
+export const JobBoardSchema = z.enum(["greenhouse", "lever", "ashby", "workday", "company-careers"]);
 
 export const AutomationStatusSchema = z.enum(["active", "paused"]);
 
@@ -73,11 +74,22 @@ export const WorkdaySourceConfigSchema = GreenhouseSourceConfigSchema.extend({
   companies: z.array(WorkdayCompanySchema).max(APP_CONSTANTS.ATS_MAX_COMPANIES),
 });
 
+export const CompanyCareersCompanySchema = GreenhouseCompanySchema.extend({
+  token: z.string().min(1).max(2048)
+    .refine((value) => { const url = normalizeCareerSiteUrl(value); return url !== null && !requiresCareerSiteAuthorization(new URL(url)); }, "Enter a supported public HTTPS careers URL")
+    .transform((value) => normalizeCareerSiteUrl(value)!),
+});
+
+export const CompanyCareersSourceConfigSchema = GreenhouseSourceConfigSchema.extend({
+  companies: z.array(CompanyCareersCompanySchema).max(APP_CONSTANTS.ATS_MAX_COMPANIES),
+});
+
 export const SourceConfigSchema = z.object({
   greenhouse: GreenhouseSourceConfigSchema.optional(),
   lever: LeverSourceConfigSchema.optional(),
   ashby: AshbySourceConfigSchema.optional(),
   workday: WorkdaySourceConfigSchema.optional(),
+  "company-careers": CompanyCareersSourceConfigSchema.optional(),
 });
 
 export const CreateAutomationSchema = z

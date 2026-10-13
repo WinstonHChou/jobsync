@@ -111,6 +111,11 @@ function CompaniesContainer() {
           <CardContent>
             {provider && (
               <div className="mb-4">
+                {provider === "company-careers" && (
+                  <p className="text-sm text-muted-foreground">
+                    Paste a company’s public careers search URL to add it to your watchlist.
+                  </p>
+                )}
                 {provider === "workday" && (
                   <p className="mb-2 text-sm text-muted-foreground">
                     Paste a company’s Workday careers URL to add it to your watchlist.

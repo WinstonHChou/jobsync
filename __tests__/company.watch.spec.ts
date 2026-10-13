@@ -35,6 +35,20 @@ describe("watchBoardCompany", () => {
     (getCurrentUser as any).mockResolvedValue(mockUser);
   });
 
+  it("stores a normalized custom careers URL and preserves its filters", async () => {
+    vi.mocked(prisma.company.findFirst).mockResolvedValue(null);
+    vi.mocked(prisma.company.create).mockResolvedValue({ id: "custom-id" } as never);
+    const result = await watchBoardCompany("company-careers", { name: "Acme", token: "https://careers.example.com/jobs?q=intern&page=3&utm_source=alert" });
+    expect(result).toEqual({ success: true, data: { companyId: "custom-id", merged: false } });
+    expect(prisma.company.create).toHaveBeenCalledWith({ data: expect.objectContaining({ atsProvider: "company-careers", atsToken: "https://careers.example.com/jobs?q=intern", atsHost: null }) });
+  });
+
+  it.each(["https://127.0.0.1/jobs", "https://www.metacareers.com/jobsearch/", "http://careers.example.com/jobs"])("rejects unsupported custom URLs before persistence: %s", async (token) => {
+    expect(await watchBoardCompany("company-careers", { name: "Acme", token })).toMatchObject({ success: false });
+    expect(prisma.company.findFirst).not.toHaveBeenCalled();
+    expect(prisma.company.create).not.toHaveBeenCalled();
+  });
+
   it("creates a watched company when no row matches", async () => {
     (prisma.company.findFirst as any).mockResolvedValue(null);
     (prisma.company.create as any).mockResolvedValue({ id: "new-id" });

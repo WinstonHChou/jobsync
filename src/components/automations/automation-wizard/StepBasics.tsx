@@ -60,6 +60,7 @@ export function StepBasics({
                 </SelectItem>
                 <SelectItem value="lever">Lever (company boards)</SelectItem>
                 <SelectItem value="ashby">Ashby (company boards)</SelectItem>
+                <SelectItem value="company-careers">Company careers URL</SelectItem>
                 <SelectItem value="workday">Workday (company careers sites)</SelectItem>
               </SelectContent>
             </Select>

@@ -249,6 +249,11 @@ export function CompanyPicker({
         disabled={atLimit}
         onResolved={onAdd}
       />
+      {provider === "company-careers" && (
+        <p className="text-sm text-muted-foreground">
+          Supports public job data on Google, Phenom (including BCG), and compatible company sites. Browser-only sites are not supported yet.
+        </p>
+      )}
       {provider === "workday" && (
         <p className="text-sm text-muted-foreground">
           Add a company’s Workday careers URL above, or choose a company from your watchlist.

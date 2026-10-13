@@ -11,7 +11,7 @@ export type AutomationRunStatus =
   | "rate_limited"
   | "cancelled";
 export type DiscoveryStatus = "new" | "accepted" | "dismissed";
-export type JobBoard = "greenhouse" | "lever" | "ashby" | "workday";
+export type JobBoard = "greenhouse" | "lever" | "ashby" | "workday" | "company-careers";
 
 export interface GreenhouseCompany {
   name: string;
@@ -62,12 +62,13 @@ export interface SourceConfig {
   lever?: LeverSourceConfig;
   ashby?: AshbySourceConfig;
   workday?: WorkdaySourceConfig;
+  "company-careers"?: GreenhouseSourceConfig;
 }
 
 // Plain, dependency-free board list. Do NOT import this from ats/registry.ts
 // (that pulls the network-calling search fns into client bundles). Both the
 // client-imported schema and the scheduler import it here.
-export const ATS_BOARDS: JobBoard[] = ["greenhouse", "lever", "ashby", "workday"];
+export const ATS_BOARDS: JobBoard[] = ["greenhouse", "lever", "ashby", "workday", "company-careers"];
 
 // Boards that used to exist and were removed. Their Automation rows stay in
 // the database; the UI marks them retired and only offers pause/delete.

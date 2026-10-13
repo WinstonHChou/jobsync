@@ -1,4 +1,7 @@
 export interface JobDetails {
+  // Transient provenance used to group custom-site detail failures by watchlist URL.
+  careerSourceUrl?: string;
+  careerAdapter?: "workday";
   title: string;
   company: string;
   location: string;

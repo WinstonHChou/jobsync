@@ -1,3 +1,4 @@
+import { normalizeCareerSiteUrl } from "@/lib/careerSiteUrl";
 import { parseWorkdayBoardUrl } from "@/lib/workdayBoard";
 import { APP_CONSTANTS } from "@/lib/constants";
 import type { JobBoard, LeverHost } from "@/models/automation.model";
@@ -9,6 +10,7 @@ export function companyBoardUrl(
   jobBoard: JobBoard,
   company: { token: string; host?: LeverHost },
 ): string {
+  if (jobBoard === "company-careers") return normalizeCareerSiteUrl(company.token) ?? "";
   if (jobBoard === "workday") {
     return parseWorkdayBoardUrl(company.token)?.url ?? "";
   }

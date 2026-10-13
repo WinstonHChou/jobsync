@@ -41,6 +41,8 @@ export function JobBoardUrlAdd({
       } else {
         setUrlError(result.message);
       }
+    } catch {
+      setUrlError("Could not validate this careers URL. Please try again.");
     } finally {
       setIsResolving(false);
     }
@@ -57,7 +59,7 @@ export function JobBoardUrlAdd({
           onKeyDown={(e) => {
             if (e.key === "Enter") {
               e.preventDefault();
-              resolveUrl();
+              if (!disabled && !isResolving && urlInput.trim()) resolveUrl();
             }
           }}
         />

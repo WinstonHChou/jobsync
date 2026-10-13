@@ -15,7 +15,7 @@ stale_after: 2027-09-30
 
 An automation is a saved search that runs once a day and brings new job postings to you. It reads the public job boards of the companies you pick, drops the listings that have nothing to do with what you asked for, sends the most promising ones to your AI provider to be scored against one of your resumes, and saves the results as **discovered jobs** you can accept into your tracker or dismiss.
 
-Everything is company-centric: JobSync reads job boards hosted by **Greenhouse**, **Lever**, **Ashby** and **Workday**, so you choose employers rather than searching the whole internet. One automation covers one of those four sources; create a second automation if you want to track companies on another.
+Choose employers using **Greenhouse**, **Lever**, **Ashby**, **Workday**, or **Company careers URL**. Each automation uses one source.
 
 An automation needs an AI provider and model set under **Settings → AI Provider**, and a resume in your profile to match against.
 
@@ -23,7 +23,7 @@ An automation needs an AI provider and model set under **Settings → AI Provide
 
 Open **Automations** in the sidebar and click **Create Automation**. The wizard has six steps:
 
-1. **Basics** — a name, and which job board (Greenhouse, Lever, Ashby or Workday) the companies live on.
+1. **Basics** — a name, and which source the companies use.
 2. **Search** — the companies to track, then your filters: target job titles, keywords/skills, locations, and how many listings get full AI analysis per run. This is the step that decides how useful the automation is; see the next two sections.
 3. **Resume** — the resume every discovered job is scored against. Resumes with fewer than two sections are shown greyed out with an alert icon until you fill them in under **Profile**; an attached file does not count.
 4. **Matching** — a match threshold. Only listings whose AI match score reaches it are saved; anything analyzed and scored below it is discarded.
@@ -44,7 +44,9 @@ For **Workday**, paste a full careers URL, such as `https://nvidia.wd5.myworkday
 
 Workday retrieves up to 2,000 listings per company, skips saved jobs, then fetches full descriptions before filtering and matching. Description fetching has a three-minute deadline. Retrieval limits and failures are reported; successful descriptions are processed and closed postings skipped.
 
-Under **Library → Companies**, select Greenhouse, Lever or Ashby to browse directories and **Watch** employers. Select **Workday** to add careers URLs. Added companies appear under **Watchlist**, with board links, and can be selected in the automation wizard.
+For **Company careers URL**, paste a public HTTPS job search URL. Google, Phenom (including BCG), Waymo, embedded ATS boards, and pages with structured JobPosting data are supported. Google/Phenom URL filters are preserved; ATS-backed sites require automation filters. Other pages need public structured descriptions and recognizable job links. Browser-only sites and Meta are unsupported. Custom pages retrieve up to 50 pages/1,000 jobs per company, with a 90-second search deadline; partial results and failures are reported. Narrow URL filters if limits are reached.
+
+Under **Library → Companies**, browse directories or select **Workday**/**Company careers** to add URLs. Watched companies are available in the wizard.
 
 Watching a company adds it to your Library. Linking an existing company requires confirmation. Unwatching preserves the company and its jobs.
 

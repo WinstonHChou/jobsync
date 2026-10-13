@@ -14,7 +14,7 @@ export function BoardCell({ company }: { company: Company }) {
   return (
     <span className="flex items-center gap-1.5">
       <span className="text-muted-foreground">
-        {PROVIDER_META[provider].label} {provider !== "workday" && company.atsToken}
+        {PROVIDER_META[provider].label} {provider !== "workday" && provider !== "company-careers" && company.atsToken}
       </span>
       <a
         href={companyBoardUrl(provider, {
