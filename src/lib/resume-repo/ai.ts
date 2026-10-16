@@ -24,6 +24,10 @@ function suggestionTokenBudget() {
   const configured = Number(process.env.RESUME_SUGGESTION_MAX_TOKENS);
   return Number.isInteger(configured) && configured >= 4096 && configured <= 32768 ? configured : 16384;
 }
+function matchingTokenBudget() {
+  const configured = Number(process.env.RESUME_MATCH_MAX_TOKENS);
+  return Number.isInteger(configured) && configured >= 1024 && configured <= 32768 ? configured : 4096;
+}
 async function generate(userId: string, data: ResumeOptimizationData, system: string, prompt: string, stage: string, request: ResumeAiRequest = {}, maxOutputTokens = 4096) {
   const rate = checkRateLimit(userId);
   if (!rate.allowed) throw new Error("AI request limit reached; wait a minute before trying again");
@@ -50,7 +54,7 @@ async function generate(userId: string, data: ResumeOptimizationData, system: st
     const finishReason = await result.finishReason;
     const usage = await result.totalUsage;
     await tracker.finish({ usage, finishReason });
-    if (finishReason === "length") throw new Error(`${stage}: the model reached its output limit (requested budget: ${maxOutputTokens} tokens, including any model reasoning). No incomplete response was saved.${stage === "Tailoring suggestions" ? " Retry Suggest changes; if this repeats, adjust RESUME_SUGGESTION_MAX_TOKENS within your model server's context limit." : ""}`);
+    if (finishReason === "length") throw new Error(`${stage}: the model reached its output limit (requested budget: ${maxOutputTokens} tokens, including any model reasoning). No incomplete response was saved. If this repeats, adjust ${stage === "Tailoring suggestions" ? "RESUME_SUGGESTION_MAX_TOKENS" : "RESUME_MATCH_MAX_TOKENS"} within your model server's context limit.`);
     if (finishReason !== "stop") throw new Error(`${stage}: AI response did not finish; no changes were accepted`);
     return text;
   } catch (error) {
@@ -65,7 +69,7 @@ export async function matchResumeText(userId: string, data: ResumeOptimizationDa
   const prompt = data.matchPromptTemplate
     ? data.matchPromptTemplate.replace("{{RESUME_SNAPSHOT}}", () => text).replace("{{JOB_SNAPSHOT}}", () => data.jobText)
     : buildJobMatchPrompt(text, data.jobText);
-  const result = parseJobMatch(await generate(userId, data, data.matchSystemPrompt ?? JOB_MATCH_SYSTEM_PROMPT, prompt, "Resume matching", request));
+  const result = parseJobMatch(await generate(userId, data, data.matchSystemPrompt ?? JOB_MATCH_SYSTEM_PROMPT, prompt, "Resume matching", request, matchingTokenBudget()));
   if (!result.scores) throw new Error("AI did not return a valid match score");
   return { score: result.scores.matchScore, body: result.body, at: new Date().toISOString() };
 }

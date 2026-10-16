@@ -54,6 +54,19 @@ describe("resume tailoring AI boundaries", () => {
     expect(suggestions.edits[0]).toMatchObject({ accepted: false, factsConfirmed: false });
     expect(streamText).toHaveBeenCalledWith(expect.objectContaining({ maxOutputTokens: 16384, system: expect.stringContaining("at most 6 high-impact edits") }));
   });
+  it("configures matching independently from suggestions and falls back for invalid matching limits", async () => {
+    vi.stubEnv("RESUME_MATCH_MAX_TOKENS", "8192");
+    vi.stubEnv("RESUME_SUGGESTION_MAX_TOKENS", "24576");
+    try {
+      mockResponse({ text: "SCORES: match=80 recommendation=strong\nEvidence", finishReason: "stop", totalUsage: {} });
+      await matchResumeText("owner", data(), "Baseline");
+      expect(streamText).toHaveBeenLastCalledWith(expect.objectContaining({ maxOutputTokens: 8192 }));
+      vi.stubEnv("RESUME_MATCH_MAX_TOKENS", "invalid");
+      mockResponse({ text: "SCORES: match=80 recommendation=strong\nEvidence", finishReason: "stop", totalUsage: {} });
+      await matchResumeText("owner", data(), "Candidate");
+      expect(streamText).toHaveBeenLastCalledWith(expect.objectContaining({ maxOutputTokens: 4096 }));
+    } finally { vi.unstubAllEnvs(); }
+  });
   it("uses a configured suggestion budget and rejects truncated JSON even if it looks complete", async () => {
     const run = data();
     vi.stubEnv("RESUME_SUGGESTION_MAX_TOKENS", "24576");

@@ -8,6 +8,7 @@ services:
       RESUME_REPO_PATH: /resume-repo
       RESUME_REPO_ALLOWED_EMAILS: ${RESUME_REPO_ALLOWED_EMAILS:?Set the allowed JobSync login emails}
       RESUME_AI_TIMEOUT_MS: ${RESUME_AI_TIMEOUT_MS:-180000}
+      RESUME_MATCH_MAX_TOKENS: ${RESUME_MATCH_MAX_TOKENS:-4096}
       RESUME_SUGGESTION_MAX_TOKENS: ${RESUME_SUGGESTION_MAX_TOKENS:-16384}
     volumes:
       - ${RESUME_REPO_HOST_PATH:?Set the absolute host path to Resume-CV}:/resume-repo

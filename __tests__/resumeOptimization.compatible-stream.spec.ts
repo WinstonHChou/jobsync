@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { expect, it, vi, beforeEach } from "vitest";
+import { expect, it, vi, beforeEach, afterEach } from "vitest";
 import { createOpenAI } from "@ai-sdk/openai";
 import { getModel } from "@/lib/ai/providers";
 import { matchResumeText, suggestResumeEdits } from "@/lib/resume-repo/ai";
@@ -9,7 +9,9 @@ vi.mock("@/lib/ai/providers", () => ({ getModel: vi.fn() }));
 vi.mock("@/lib/aiUsage/tracker", () => ({ startAiCall: () => ({ finish: vi.fn(async () => {}), markFirstToken: vi.fn() }) }));
 vi.mock("@/lib/ai/rate-limiter", () => ({ checkRateLimit: () => ({ allowed: true }) }));
 beforeEach(() => vi.clearAllMocks());
-it("uses the real OpenAI-compatible adapter to request streaming chat completions and parse their score", async () => {
+afterEach(() => vi.unstubAllEnvs());
+it("sends the configured matching budget through the real OpenAI-compatible adapter and parses its score", async () => {
+  vi.stubEnv("RESUME_MATCH_MAX_TOKENS", "8192");
   const chunk = (delta: object, reason: string | null = null) => `data: ${JSON.stringify({ id: "test", object: "chat.completion.chunk", created: 1, model: "Qwen/Qwen3.8-Flash-Next", choices: [{ index: 0, delta, finish_reason: reason }] })}\n\n`;
   const fetch = vi.fn(async () => new Response(chunk({ role: "assistant", content: "SCORES: match=80 " }) + chunk({ content: "recommendation=strong\n\nEvidence" }) + chunk({}, "stop") + "data: [DONE]\n\n", { headers: { "Content-Type": "text/event-stream" } }));
   const model = createOpenAI({ baseURL: "http://test.invalid/v1", apiKey: "", fetch }).chat("Qwen/Qwen3.8-Flash-Next");
@@ -19,7 +21,7 @@ it("uses the real OpenAI-compatible adapter to request streaming chat completion
   expect(fetch).toHaveBeenCalledOnce();
   const args = fetch.mock.calls[0] as unknown as [string, RequestInit];
   expect(args[0]).toBe("http://test.invalid/v1/chat/completions");
-  expect(JSON.parse(String(args[1].body))).toMatchObject({ stream: true, model: "Qwen/Qwen3.8-Flash-Next", max_tokens: 4096 });
+  expect(JSON.parse(String(args[1].body))).toMatchObject({ stream: true, model: "Qwen/Qwen3.8-Flash-Next", max_tokens: 8192 });
 });
 it("sends the larger suggestion budget as max_tokens and preserves truncation rejection through the real adapter", async () => {
   const files = { "Resume.tex": "\\begin{document}\n\\section{Experience}\n\\Engineer\n\\end{document}", "experience.tex": "\\NewDocumentCommand{\\Engineer}{}{\\resumeItem{Built engineering systems.}}" };

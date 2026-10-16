@@ -29,7 +29,7 @@ The structure panel lets you rename or move sections, reorder entries within a s
 
 Select **Build preview**. JobSync compiles the selected source with your LaTeX template. Shared content changes also trigger a CV build when `CV_Winston.tex` exists. Review warnings, page count, and the PDF; successful compilation does not guarantee good layout.
 
-**Re-score** compares the candidate against the captured posting using the same provider, model, and match prompt as the baseline. Scores are advisory. **Review source changes** shows original and selected source side by side.
+**Re-score** compares the candidate against the captured posting using the same provider, model, and match prompt as the baseline. Scores are advisory. Baseline and candidate matching use `RESUME_MATCH_MAX_TOKENS` (default 4096, range 1024 to 32768), independently of the suggestion budget. **Review source changes** shows original and selected source side by side.
 
 After reviewing the PDF and acknowledging warnings, **Commit & export** creates a local commit containing source and its matching PDF, then downloads it. Your normal checkout remains in place. Pushing and merging into `main` remain separate Git actions. If the target branch is checked out elsewhere, switch that checkout to another branch before committing through JobSync.
 
