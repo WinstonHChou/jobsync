@@ -159,15 +159,16 @@ export function AutomationWizard({
               )}
               {step < STEPS.length - 1 ? (
                 <Button
+                  key="next-step"
                   type="button"
-                  onClick={nextStep}
+                  onClick={(event) => { event.preventDefault(); nextStep(); }}
                   disabled={!canGoNext()}
                 >
                   Next
                   <ChevronRight className="h-4 w-4 ml-1" />
                 </Button>
               ) : (
-                <Button type="submit" disabled={isSubmitting}>
+                <Button key="save-automation" type="submit" disabled={isSubmitting}>
                   {isSubmitting && (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   )}

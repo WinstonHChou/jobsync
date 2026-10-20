@@ -1,9 +1,11 @@
 import { APP_CONSTANTS } from "@/lib/constants";
-import type { JobBoard } from "@/models/automation.model";
+import type { JobBoard, TitleMatchMode } from "@/models/automation.model";
 
 export interface AtsRunConfig {
   companies: { name: string; token: string; host?: "default" | "eu" }[];
   targetTitles: string[];
+  titleContains: string[];
+  titleMatchMode: TitleMatchMode;
   keywords: string[];
   locations: string[];
   strictLocation: boolean;
@@ -23,6 +25,8 @@ export function parseAtsConfig(
     return {
       companies: cfg.companies,
       targetTitles: Array.isArray(cfg.targetTitles) ? cfg.targetTitles : [],
+      titleContains: Array.isArray(cfg.titleContains) ? cfg.titleContains.filter((term: unknown): term is string => typeof term === "string" && !!term.trim()).map((term: string) => term.trim()) : [],
+      titleMatchMode: cfg.titleMatchMode === "words" ? "words" : "contains",
       keywords: Array.isArray(cfg.keywords) ? cfg.keywords : [],
       locations: Array.isArray(cfg.locations) ? cfg.locations : [],
       strictLocation: !!cfg.strictLocation,

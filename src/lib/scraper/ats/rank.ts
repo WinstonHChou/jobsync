@@ -2,6 +2,9 @@ import { APP_CONSTANTS } from "@/lib/constants";
 import type { PrerankComponents } from "@/models/ai.schemas";
 import type { JobDetails } from "../types";
 
+import { locationMatches } from "./filters";
+export { locationMatches } from "./filters";
+
 export type { PrerankComponents };
 
 const TITLE_STOP = new Set([
@@ -59,15 +62,6 @@ export function buildIdf(corpus: JobDetails[]): (term: string) => number {
     cache.set(key, idf);
     return idf;
   };
-}
-
-// Empty preference = no constraint (gate passes all). "Remote" is not special:
-// it only matches when the user explicitly lists it as a wanted location.
-// Whole-term, so "US" does not match "aUStralia" / "Belarus" / "Houston".
-export function locationMatches(jobLocation: string, wanted: string[]): boolean {
-  const loc = (jobLocation || "").toLowerCase();
-  if (!wanted || wanted.length === 0) return true;
-  return wanted.some((w) => termInText(loc, w));
 }
 
 function recencyTiebreak(postedDate?: string): number {

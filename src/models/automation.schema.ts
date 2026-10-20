@@ -31,6 +31,8 @@ export const GreenhouseSourceConfigSchema = z.object({
     .array(GreenhouseCompanySchema)
     .max(APP_CONSTANTS.ATS_MAX_COMPANIES),
   targetTitles: z.array(z.string().min(1).max(100)).optional(),
+  titleContains: z.array(z.string().trim().min(1).max(100)).max(20).optional(),
+  titleMatchMode: z.enum(["contains", "words"]).optional(),
   keywords: z.array(z.string().min(1).max(100)).optional(),
   locations: z.array(z.string().min(1).max(100)).optional(),
   strictLocation: z.boolean().optional(),

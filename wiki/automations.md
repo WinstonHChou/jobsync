@@ -3,7 +3,7 @@ type: how-to
 title: Automations
 description: Setting up a scheduled ATS search over company job boards, filling in the filters and resume skills that make it return good matches, and handling the jobs it discovers.
 feature: automations
-tags: [automations, job search, scheduled search, greenhouse, lever, ashby, ats, company boards, watchlist, discovered jobs, match score, keywords, target titles, locations, resume skills, filters, notifications]
+tags: [automations, job search, scheduled search, greenhouse, lever, ashby, ats, company boards, watchlist, discovered jobs, match score, keywords, target titles, title fragments, strict title filter, location aliases, locations, resume skills, filters, notifications]
 aliases: [automated job search, job discovery, scheduled job search, job scraper, run a search, discovered jobs]
 status: stable
 stale_after: 2027-09-30
@@ -24,7 +24,7 @@ An automation needs an AI provider and model set under **Settings → AI Provide
 Open **Automations** in the sidebar and click **Create Automation**. The wizard has six steps:
 
 1. **Basics** — a name, and which source the companies use.
-2. **Search** — the companies to track, then your filters: target job titles, keywords/skills, locations, and how many listings get full AI analysis per run. This is the step that decides how useful the automation is; see the next two sections.
+2. **Search** — the companies to track, then your filters: strict title fragments, target job titles, keywords/skills, locations, and how many listings get full AI analysis per run. This is the step that decides how useful the automation is; see the next two sections.
 3. **Resume** — the resume every discovered job is scored against. Resumes with fewer than two sections are shown greyed out with an alert icon until you fill them in under **Profile**; an attached file does not count.
 4. **Matching** — a match threshold. Only listings whose AI match score reaches it are saved; anything analyzed and scored below it is discarded.
 5. **Schedule** — the hour of the day the automation runs (server time). Only one automation may occupy an hour, so hours already taken are marked **In use** and rejected.
@@ -42,7 +42,7 @@ To add a company outside the directory, paste its board URL or token below the p
 
 For **Workday**, paste a full careers URL, such as `https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite`. Locale-prefixed URLs and individual job links also work. Standard `myworkdayjobs.com` sites are supported; custom domains require their underlying Workday URL. No account or API key is needed.
 
-Workday retrieves up to 2,000 listings per company, skips saved jobs, then fetches full descriptions before filtering and matching. Description fetching has a three-minute deadline. Retrieval limits and failures are reported; successful descriptions are processed and closed postings skipped.
+Workday retrieves up to 2,000 listings per company and skips saved jobs. When strict title fragments are configured, known off-title listings are excluded before fetching descriptions. Incomplete titles are checked after fetching details. Final title and location checks always run before ranking and AI matching; location filtering waits for complete details. Description fetching has a three-minute deadline. Retrieval limits and failures are reported; successful descriptions are processed and closed postings skipped.
 
 For **Company careers URL**, paste a public HTTPS job search URL. Google, Phenom (including BCG), Waymo, embedded ATS boards, and pages with structured JobPosting data are supported. Google/Phenom URL filters are preserved; ATS-backed sites require automation filters. Other pages need public structured descriptions and recognizable job links. Browser-only sites and Meta are unsupported. Custom pages retrieve up to 50 pages/1,000 jobs per company, with a 90-second search deadline; partial results and failures are reported. Narrow URL filters if limits are reached.
 
@@ -52,29 +52,30 @@ Watching a company adds it to your Library. Linking an existing company requires
 
 ## How do I set up filters so the automation returns good results?
 
-**Fill in the filters. This is the single biggest factor in whether an automation is useful.** A company board can carry hundreds of listings across every department; the filters are what turn that into a short list worth your attention.
+The same filters work across all supported sources:
 
-- **Target job titles** — the roles you actually want, e.g. `Frontend Engineer`, `Staff Software Engineer`. A listing whose title matches one of these ranks far higher than one that does not.
-- **Keywords / skills** — the technologies and terms that describe your work, e.g. `React`, `TypeScript`, `Kubernetes`. These are matched against both the title and the full description, so they catch good roles whose title is worded oddly.
-- **Locations** — the cities, provinces/states or countries you would work in, e.g. `Calgary`, `Seattle`, `San Francisco`, `Canada`. Locations do **not** affect ranking on their own. They only take effect when you turn on **Only show jobs in these locations**, which drops non-matching listings before ranking. Avoid adding `Remote` here: a listing matches if its location text contains any of your entries, so `Remote` lets through remote roles anywhere in the world, including places you cannot work.
+- **Title contains any of** — requires a title match. Add up to 20 fragments with Enter or +. **Partial text** matches `robot` in “Robotics Engineer.” **Whole word or phrase** matches `intern` in “Engineering Intern,” excluding “Internal Tools Engineer.” Matching ignores case, repeated spaces, and dash differences. Descriptions cannot satisfy this filter. Empty means unrestricted. Fragments stay in this automation.
+- **Target job titles** — ranking preferences, e.g. `Frontend Engineer`; these do not require a title match.
+- **Keywords / skills** — terms such as `React` or `Kubernetes`, matched against titles and full descriptions for ranking. Specific terms count more than generic ones.
+- **Locations** — cities, states/provinces, or countries. Enable **Only show jobs in these locations** to enforce them; they do not affect ranking. Unknown locations are excluded and counted in the log. Remote jobs must also match; adding `Remote` permits remote jobs anywhere.
 
-Add several of each rather than one. Specific terms count for more than generic ones — `kubernetes` is worth more than `engineer`, which appears in almost every listing.
+Multiple entries within either strict filter use OR; title and location filters must both pass. They apply before AI matching and additional unscored saves. Run History shows a **Title match** stage when enabled.
 
-Leaving both target titles and keywords empty is the common mistake: with nothing to rank against, every listing fails the relevance floor and the run saves nothing. The wizard shows an amber warning when both are empty.
+Country aliases work in both directions: United States / US / USA / U.S. / U.S.A.; Taiwan / TW / TWN / 台灣 / 臺灣 / 台湾; United Kingdom / UK / U.K. Country names are not inferred from cities: `United States` accepts “Austin, USA,” but not “Seattle, WA.” `CA` is not treated as Canada.
+
+An explicit strict title match supplies relevance evidence even without keyword hits. Resume skills also contribute. The wizard warns when title fragments, target titles, and keywords are all empty; that search relies entirely on resume skills.
 
 ## Why does my matching resume need a skills section?
 
-Because the skills on your resume are used as extra keywords when listings are ranked. Every skill tag in your resume's **Skills** section is added to the keywords you typed in the wizard, so a resume with a well-filled skills section widens what the automation can recognise without you having to type every term twice.
+Skills from your resume's **Skills** section become extra ranking keywords alongside those entered in the wizard. They also reach the AI for match scoring, helping it assess relevant experience without you retyping each term.
 
-The skills section also goes into the text handed to the AI for the match score, so it improves the scoring as well as the shortlisting.
+Resume skills also become job tags when the posting's title or description mentions them. Each saved job gets at most ten tags, drawn only from your resume; a run never invents a new tag.
 
-Your skills are also used to tag the jobs a run discovers. When a saved listing's title or description mentions one of your resume skills, that skill is added to the job as a tag, so the job's detail page shows at a glance which of your skills the posting asks for. Only skills already on your resume are used — a run never invents a new tag — and each job gets at most ten.
+Write skills the way job ads do. A bracketed note is ignored, so **Angular (v10–14)** matches “Angular.” Combined labels such as **C# / .NET** or **Agile/Scrum** match poorly because postings rarely spell them that way. Enter those as separate skills for better ranking and tagging.
 
-For a skill to be tagged, the posting has to mention it by name, so write your skills the way a job ad would. A note in brackets is ignored, so **Angular (v10–14)** still matches a posting that just says "Angular". But a skill written as two things at once — **C# / .NET**, **Agile/Scrum** — matches nothing, because no posting spells it that way. List those as separate skills instead. This helps the ranking too, which reads the same skill names.
+Under **Profile**, open the matching resume and click **Add Skills**. Use up to eight categories with twenty skills each, such as *Languages*, *Frameworks*, and *Cloud*.
 
-To add one, open **Profile**, open the resume you use for matching, and click **Add Skills**. Group your skills into categories (up to 8, with up to 20 skills each) — for example *Languages*, *Frameworks*, *Cloud* — and list the real technology names you would want a posting to mention.
-
-A resume with no skills section still works, but the automation then has only your typed keywords to go on. Pair a filled-in skills section with a good set of target titles and keywords for the best results.
+Without resume skills, ranking relies on your title fragments, target titles, and keywords. Fill those in, or add a skills section, before expecting useful results.
 
 ## How many listings does each run analyze?
 

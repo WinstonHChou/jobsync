@@ -21,6 +21,26 @@ const config = {
 };
 
 describe("runAtsPipeline", () => {
+  it("enforces title fragments and country aliases together before AI and additional saves", () => {
+    const jobs = [
+      job({ title: "Robotics Engineer", location: "Taipei, TW" }),
+      job({ title: "Robotics Intern", location: "Austin, USA" }),
+      job({ title: "Sales", location: "Taipei, Taiwan", description: "Robotics and React" }),
+      job({ title: "Robotics Engineer", location: "Berlin, Germany" }),
+      job({ title: "Robotics Intern", location: "" }),
+    ];
+    const result = runAtsPipeline(jobs, { targetTitles: [], keywords: [], titleContains: ["robot"], locations: ["Taiwan", "United States"], strictLocation: true }, [], { k: 1 });
+    expect(result.funnel).toMatchObject({ titled: 4, located: 2, unknownLocation: 1, floorSurvivors: 2 });
+    expect(result.toAnalyze).toHaveLength(1);
+    expect(result.toSaveUnanalyzed).toHaveLength(1);
+    expect([...result.toAnalyze, ...result.toSaveUnanalyzed].every((entry) => entry.job.title.startsWith("Robotics"))).toBe(true);
+  });
+  it("does not fail open on a strict title mismatch and can match whole words", () => {
+    const result = runAtsPipeline([job({ title: "Internal Tools", description: "React TypeScript" })], { ...config, titleContains: ["intern"], titleMatchMode: "words" }, []);
+    expect(result.funnel.titled).toBe(0);
+    expect(result.toAnalyze).toEqual([]);
+    expect(result.toSaveUnanalyzed).toEqual([]);
+  });
   it("keeps only floor-passers", () => {
     const jobs = [
       job({ title: "Frontend Engineer", description: "React" }), // title hit

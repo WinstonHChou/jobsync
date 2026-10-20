@@ -8,6 +8,7 @@ import { getAllTags, createTag } from "@/actions/tag.actions";
 import { getAllJobLocations } from "@/actions/jobLocation.actions";
 import { createLocation } from "@/actions/job.actions";
 import { EntityStringChipInput } from "./EntityStringChipInput";
+import { TitleFilterFields } from "./TitleFilterFields";
 import type { AtsConfigValue } from "./types";
 
 interface TargetingFieldsProps {
@@ -16,19 +17,20 @@ interface TargetingFieldsProps {
 }
 
 export function TargetingFields({ value, onChange }: TargetingFieldsProps) {
-  // Without target titles or keywords there is no signal to rank jobs against,
-  // so the relevance floor drops everything and nothing is saved.
+  // Highlight searches that rely entirely on resume skills for relevance.
   const noSignal =
+    (value.titleContains?.length ?? 0) === 0 &&
     (value.targetTitles?.length ?? 0) === 0 &&
     (value.keywords?.length ?? 0) === 0;
 
   return (
     <>
+      <TitleFilterFields value={value} onChange={onChange} />
       <EntityStringChipInput
         label="Target job titles"
         placeholder="e.g., Frontend Engineer"
         noun="job title"
-        description="Optional. Listings whose title matches rank higher."
+        description="Optional ranking preference. Use Title contains any of above to require a title match."
         values={value.targetTitles ?? []}
         onChange={(next) => onChange({ ...value, targetTitles: next })}
         loadOptions={async () => {
@@ -62,9 +64,8 @@ export function TargetingFields({ value, onChange }: TargetingFieldsProps) {
         <div className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-400">
           <TriangleAlert className="h-4 w-4 mt-0.5 shrink-0" />
           <span>
-            Add at least one target title or keyword. Without them there is
-            nothing to rank jobs against, so this automation will save no
-            listings.
+            Add a title fragment, target title, or keyword to guide this search.
+            Otherwise, only resume skills can provide relevance signals.
           </span>
         </div>
       )}
@@ -73,7 +74,7 @@ export function TargetingFields({ value, onChange }: TargetingFieldsProps) {
         label="Locations"
         placeholder="e.g., Calgary, Seattle"
         noun="location"
-        description="Optional. Used only to filter results when the toggle below is on (not part of ranking)."
+        description="Optional. Enable the toggle below to filter. Country aliases include US / USA / United States, TW / Taiwan / 台灣, and UK / United Kingdom. Cities are not inferred to a country."
         values={value.locations ?? []}
         onChange={(next) => onChange({ ...value, locations: next })}
         loadOptions={async () => {
@@ -91,10 +92,11 @@ export function TargetingFields({ value, onChange }: TargetingFieldsProps) {
           <Label>Only show jobs in these locations</Label>
           <p className="text-sm text-muted-foreground">
             When on, jobs matching none of your locations are dropped before
-            ranking. Remote roles always pass.
+            ranking. Remote roles must match a listed location too; adding Remote permits remote roles anywhere.
           </p>
         </div>
         <Switch
+          aria-label="Only show jobs in these locations"
           checked={!!value.strictLocation}
           disabled={(value.locations ?? []).length === 0}
           onCheckedChange={(checked) =>

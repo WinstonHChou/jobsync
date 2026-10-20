@@ -4,6 +4,7 @@ import type {
 } from "@/models/automation.model";
 import type { AtsProvider } from "../ats/types";
 import { runAtsPipeline } from "../ats/pipeline";
+import { titleMatches } from "../ats/filters";
 import type { ScoredJob } from "../ats/pipeline";
 import { dedupeJobs } from "../utils";
 import { getExistingJobDedupeMap } from "@/lib/jobs/jobDedupe";
@@ -142,7 +143,18 @@ export async function runAtsRun(
       });
     }
 
-    if (provider.hydrate) {
+    if (provider.hydrate && config.titleContains.length) {
+      const before = dedupedJobs.length;
+      dedupedJobs = dedupedJobs.filter((job) => {
+        // Workday supplies full listing titles. Generic careers links may be
+        // abbreviated, so defer those checks to the final hydrated title.
+        const knownTitle = (provider.id === "workday" || job.careerAdapter === "workday") && job.title.trim() && !/(?:\.\.\.|…)\s*$/.test(job.title);
+        return !knownTitle || titleMatches(job.title, config.titleContains, config.titleMatchMode);
+      });
+      if (dedupedJobs.length !== before) automationLogger.log(automation.id, "info", `${label} ${before - dedupedJobs.length} jobs excluded by strict title filter before fetching descriptions`);
+    }
+
+    if (provider.hydrate && dedupedJobs.length > 0) {
       automationLogger.log(automation.id, "info", `${label} Fetching full descriptions for ${dedupedJobs.length} new jobs...`);
       const hydrated = await provider.hydrate(dedupedJobs, { signal });
       dedupedJobs = hydrated.jobs;
@@ -181,7 +193,7 @@ export async function runAtsRun(
     automationLogger.log(
       automation.id,
       "info",
-      `${label} Ranking against ${termCount} search term(s) (${config.keywords.length} keyword(s) + ${resumeSkills.length} resume skill(s))`,
+      `${label} Ranking against ${config.titleContains.length} strict title fragment(s) and ${termCount} keyword/skill term(s) (${config.keywords.length} keyword(s) + ${resumeSkills.length} resume skill(s))`,
     );
 
     const pipeline = runAtsPipeline(dedupedJobs, config, resumeSkills, {
@@ -189,6 +201,12 @@ export async function runAtsRun(
       k: config.topK,
     });
 
+    if (pipeline.funnel.titled !== null) {
+      automationLogger.log(automation.id, "info", `${label} ${pipeline.funnel.titled} jobs remaining after strict title filter (${config.titleContains.join(" OR ")})`);
+    }
+    if (pipeline.funnel.unknownLocation > 0) {
+      automationLogger.log(automation.id, "info", `${label} ${pipeline.funnel.unknownLocation} jobs excluded because their location is unknown`);
+    }
     if (config.strictLocation && config.locations.length > 0) {
       automationLogger.log(
         automation.id,
@@ -219,6 +237,9 @@ export async function runAtsRun(
         { key: "fetched", label: "Fetched", count: jobsSearched },
         { key: "dedup", label: "New", count: jobsDeduplicated },
       ];
+      if (pipeline.funnel.titled !== null) {
+        stages.push({ key: "titled", label: "Title match", count: pipeline.funnel.titled });
+      }
       if (pipeline.funnel.located !== null) {
         stages.push({
           key: "located",
@@ -251,6 +272,8 @@ export async function runAtsRun(
       let reason: string;
       if (beforeDedup.funnel.relevant > 0) {
         reason = `all ${beforeDedup.funnel.relevant} matching job(s) on these boards are already in your list — no new postings since the last run`;
+      } else if (pipeline.funnel.titled === 0) {
+        reason = `none of the ${jobsDeduplicated} new job(s) matched your strict title filter (${config.titleContains.join(" OR ")})`;
       } else if (pipeline.funnel.located === 0) {
         reason = `none of the ${jobsDeduplicated} new job(s) matched your location filter (${config.locations.join(", ")})`;
       } else {

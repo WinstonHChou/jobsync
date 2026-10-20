@@ -85,6 +85,10 @@ export function AutomationSearchConfig({
             )}
           </div>
           <div>
+            <p className="text-sm text-muted-foreground">Strict title filter</p>
+            <p className="font-medium">{greenhouseConfig.titleContains?.length ? `${greenhouseConfig.titleContains.join(" OR ")} (${greenhouseConfig.titleMatchMode === "words" ? "whole word/phrase" : "partial text"})` : "No restriction"}</p>
+          </div>
+          <div>
             <p className="text-sm text-muted-foreground">Target titles</p>
             <p className="font-medium">
               {greenhouseConfig.targetTitles?.length

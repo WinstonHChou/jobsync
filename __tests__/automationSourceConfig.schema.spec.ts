@@ -8,6 +8,14 @@ const base = {
 };
 
 describe("CreateAutomationSchema conditional validation", () => {
+  it("preserves strict title fragments and mode, trims terms, and rejects invalid filters", () => {
+    const input = { ...base, jobBoard: "greenhouse", sourceConfig: { greenhouse: { companies: [{ name: "Acme", token: "acme" }], titleContains: [" robot "], titleMatchMode: "words" } } };
+    const parsed = CreateAutomationSchema.parse(input);
+    expect(parsed.sourceConfig?.greenhouse).toMatchObject({ titleContains: ["robot"], titleMatchMode: "words" });
+    expect(CreateAutomationSchema.safeParse({ ...input, sourceConfig: { greenhouse: { ...input.sourceConfig.greenhouse, titleContains: ["   "] } } }).success).toBe(false);
+    expect(CreateAutomationSchema.safeParse({ ...input, sourceConfig: { greenhouse: { ...input.sourceConfig.greenhouse, titleMatchMode: "regex" } } }).success).toBe(false);
+    expect(CreateAutomationSchema.safeParse({ ...input, sourceConfig: { greenhouse: { ...input.sourceConfig.greenhouse, titleContains: Array(21).fill("robot") } } }).success).toBe(false);
+  });
   it("rejects a retired job board", () => {
     const result = CreateAutomationSchema.safeParse({
       ...base,

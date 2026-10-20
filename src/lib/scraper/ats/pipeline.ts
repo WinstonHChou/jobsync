@@ -1,10 +1,14 @@
 import { APP_CONSTANTS } from "@/lib/constants";
 import type { PrerankComponents } from "@/models/ai.schemas";
 import type { JobDetails } from "../types";
-import { scoreJob, passesFloor, locationMatches, buildIdf } from "./rank";
+import { scoreJob, passesFloor, buildIdf } from "./rank";
+import { titleMatches, locationMatches, isUnknownLocation } from "./filters";
+import type { TitleMatchMode } from "@/models/automation.model";
 
 export interface PipelineConfig {
   targetTitles: string[];
+  titleContains?: string[];
+  titleMatchMode?: TitleMatchMode;
   keywords: string[];
   locations: string[];
   strictLocation: boolean;
@@ -23,6 +27,8 @@ export interface PipelineResult {
   toSaveUnanalyzed: ScoredJob[];
   funnel: {
     deduped: number; // jobs handed in (already deduped by the runner)
+    titled: number | null; // survivors after strict title gate (null if off)
+    unknownLocation: number; // unknown locations excluded by the strict gate
     located: number | null; // survivors after strict location gate (null if off)
     floorSurvivors: number; // jobs clearing the floor, before the cap ceiling
     scoreCut: number; // floor survivors dropped by the minimum-score gate
@@ -30,7 +36,7 @@ export interface PipelineResult {
   };
 }
 
-// Pure funnel: optional strict-location gate -> score -> relevance floor ->
+// Pure funnel: strict title/location gates -> score -> relevance floor ->
 // cap ceiling -> top-K split. No I/O, no LLM; unit-testable in isolation.
 export function runAtsPipeline(
   fetchedJobs: JobDetails[],
@@ -47,19 +53,22 @@ export function runAtsPipeline(
   // they stay stable on steady-state runs where few new jobs remain.
   const idf = buildIdf(options?.corpus ?? fetchedJobs);
 
+  const fragments = config.titleContains ?? [];
+  const titleGateActive = fragments.some((term) => !!term.trim());
+  const titled = titleGateActive ? fetchedJobs.filter((job) => titleMatches(job.title, fragments, config.titleMatchMode)) : null;
+  const titleSurvivors = titled ?? fetchedJobs;
   const gateActive = config.strictLocation && config.locations.length > 0;
+  const unknownLocation = gateActive ? titleSurvivors.filter((job) => isUnknownLocation(job.location)).length : 0;
   const located = gateActive
-    ? fetchedJobs.filter((job) =>
-        locationMatches(job.location, config.locations),
-      )
+    ? titleSurvivors.filter((job) => !isUnknownLocation(job.location) && locationMatches(job.location, config.locations))
     : null;
 
-  const working = located ?? fetchedJobs;
+  const working = located ?? titleSurvivors;
 
   const scored: ScoredJob[] = working.map((job) => {
     const { score, components } = scoreJob(
       job,
-      config.targetTitles,
+      [...config.targetTitles, ...fragments],
       config.keywords,
       resumeSkills,
       config.locations,
@@ -69,7 +78,9 @@ export function runAtsPipeline(
   });
 
   const floorSurvivors = scored
-    .filter((s) => passesFloor(s.components))
+    // A direct user-selected fragment is sufficient relevance evidence, even
+    // when it is only part of a word (robot -> robotics).
+    .filter((s) => titleGateActive || passesFloor(s.components))
     .sort((a, b) => b.score - a.score);
 
   // Term presence is not enough to be worth an LLM call — a single generic hit
@@ -89,6 +100,8 @@ export function runAtsPipeline(
     toSaveUnanalyzed: capped.slice(k),
     funnel: {
       deduped,
+      titled: titled ? titled.length : null,
+      unknownLocation,
       located: located ? located.length : null,
       floorSurvivors: floorSurvivors.length,
       scoreCut: floorSurvivors.length - ranked.length,

@@ -290,6 +290,14 @@ describe("runAutomation (lever)", () => {
     const saved = makeJob("Engineering Intern", "", { url: "https://careers.example.com/jobs/456", careerSourceUrl: token });
     const automation: Automation = { ...leverAutomation, jobBoard: "company-careers", sourceConfig: JSON.stringify({ "company-careers": { companies: [{ name: "Acme", token }], keywords: ["TypeScript"] } }) };
 
+    it("defers uncertain careers-page titles and locations until full details are available", async () => {
+      const filtered = { ...automation, sourceConfig: JSON.stringify({ "company-careers": { companies: [{ name: "Acme", token }], titleContains: ["robot"], locations: ["Taiwan"], strictLocation: true } }) };
+      vi.mocked(searchCompanyCareers).mockResolvedValue({ jobs: [fresh], errors: [] });
+      vi.mocked(hydrateCompanyCareers).mockResolvedValue({ jobs: [{ ...fresh, title: "Robotics Intern", description: "Build robotics software.", location: "Taipei, TW" }], errors: [] });
+      expect((await runAutomation(filtered)).jobsSaved).toBe(1);
+      expect(hydrateCompanyCareers).toHaveBeenCalledWith([fresh], expect.objectContaining({ signal: expect.any(AbortSignal) }));
+    });
+
     it("removes saved URLs before detail fetching and saves full matching descriptions", async () => {
       vi.mocked(searchCompanyCareers).mockResolvedValue({ jobs: [fresh, saved], errors: [] });
       vi.mocked(hydrateCompanyCareers).mockResolvedValue({ jobs: [{ ...fresh, description: "Build with TypeScript." }], errors: [] });
@@ -317,6 +325,40 @@ describe("runAutomation (lever)", () => {
       ...leverAutomation, id: "auto-workday", jobBoard: "workday",
       sourceConfig: JSON.stringify({ workday: { companies: [{ name: "Acme", token }], targetTitles: [], keywords: ["TypeScript"] } }),
     };
+
+    it("filters known off-title summaries before descriptions and resolves country aliases after hydration", async () => {
+      const included = { ...newJob, location: "Multiple Locations" };
+      const excluded = makeJob("Sales Engineer", "TypeScript", { url: token + "/job/sales" });
+      const filtered = { ...automation, sourceConfig: JSON.stringify({ workday: { companies: [{ name: "Acme", token }], titleContains: ["develop"], targetTitles: [], keywords: [], locations: ["United States"], strictLocation: true } }) };
+      vi.mocked(searchWorkdayJobs).mockResolvedValue({ jobs: [included, excluded], errors: [] });
+      vi.mocked(hydrateWorkdayJobs).mockResolvedValue({ jobs: [{ ...hydrated, location: "Austin, USA" }], errors: [] });
+      const result = await runAutomation(filtered);
+      expect(result).toMatchObject({ status: "completed", jobsSearched: 2, jobsSaved: 1 });
+      expect(hydrateWorkdayJobs).toHaveBeenCalledWith([included], expect.objectContaining({ signal: expect.any(AbortSignal) }));
+      const stages = JSON.parse(vi.mocked(recordRunNotifications).mock.calls[0][1].funnelStats!);
+      expect(stages).toContainEqual({ key: "titled", label: "Title match", count: 1 });
+      expect(stages).toContainEqual({ key: "located", label: "In location", count: 1 });
+    });
+
+    it("does not request descriptions or AI when every title is excluded", async () => {
+      const filtered = { ...automation, sourceConfig: JSON.stringify({ workday: { companies: [{ name: "Acme", token }], titleContains: ["robot"] } }) };
+      vi.mocked(searchWorkdayJobs).mockResolvedValue({ jobs: [newJob], errors: [] });
+      const result = await runAutomation(filtered);
+      expect(result).toMatchObject({ status: "completed", jobsSaved: 0 });
+      expect(hydrateWorkdayJobs).not.toHaveBeenCalled();
+      expect(generateText).not.toHaveBeenCalled();
+      const stages = JSON.parse(vi.mocked(recordRunNotifications).mock.calls[0][1].funnelStats!);
+      expect(stages).toContainEqual({ key: "titled", label: "Title match", count: 0 });
+    });
+
+    it("rechecks the hydrated title and never saves a mismatching final title", async () => {
+      const filtered = { ...automation, sourceConfig: JSON.stringify({ workday: { companies: [{ name: "Acme", token }], titleContains: ["develop"] } }) };
+      vi.mocked(searchWorkdayJobs).mockResolvedValue({ jobs: [newJob], errors: [] });
+      vi.mocked(hydrateWorkdayJobs).mockResolvedValue({ jobs: [{ ...hydrated, title: "Sales Engineer" }], errors: [] });
+      expect((await runAutomation(filtered)).jobsSaved).toBe(0);
+      expect(prisma.job.create).not.toHaveBeenCalled();
+      expect(generateText).not.toHaveBeenCalled();
+    });
 
     it("deduplicates summaries before hydration and ranks the full description", async () => {
       vi.mocked(searchWorkdayJobs).mockResolvedValue({ jobs: [newJob, savedJob], errors: [] });

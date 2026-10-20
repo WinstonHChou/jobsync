@@ -18,9 +18,13 @@ export interface GreenhouseCompany {
   token: string;
 }
 
+export type TitleMatchMode = "contains" | "words";
+
 export interface GreenhouseSourceConfig {
   companies: GreenhouseCompany[];
   targetTitles?: string[];
+  titleContains?: string[];
+  titleMatchMode?: TitleMatchMode;
   keywords?: string[];
   locations?: string[];
   strictLocation?: boolean;

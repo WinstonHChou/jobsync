@@ -35,6 +35,10 @@ export function StepReview({
         </span>
       </div>
       <div className="flex justify-between gap-4">
+        <span className="text-muted-foreground">Strict title filter</span>
+        <span className="font-medium text-right">{atsConfig.titleContains?.length ? `${atsConfig.titleContains.join(" OR ")} (${atsConfig.titleMatchMode === "words" ? "whole word/phrase" : "partial text"})` : "No restriction"}</span>
+      </div>
+      <div className="flex justify-between gap-4">
         <span className="text-muted-foreground">Target titles</span>
         <span className="font-medium text-right">
           {atsConfig.targetTitles?.length

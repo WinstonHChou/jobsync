@@ -7,6 +7,8 @@ export type AtsKey = "greenhouse" | "lever" | "ashby" | "workday" | "company-car
 export const EMPTY_ATS: AtsConfigValue = {
   companies: [],
   targetTitles: [],
+  titleContains: [],
+  titleMatchMode: "contains",
   keywords: [],
   locations: [],
   strictLocation: false,

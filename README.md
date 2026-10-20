@@ -138,6 +138,8 @@ Set up automations that search for new jobs on a schedule and AI-match them agai
 
 - **Company careers URL** — monitor Google, Phenom sites (including BCG), Waymo, and compatible custom company pages. Paste a public HTTPS careers search URL in the wizard or **Library → Companies → Company careers**. Automatically reuses supported ATS boards and reads structured job data on other sites. Preserves Google/Phenom search filters; use automation filters for ATS-backed sites. Browser-only sites and Meta are not supported yet.
 
+All supported automation sources share a strict **Title contains any of** filter with partial-text or whole-word/phrase matching. Combine it with **Only show jobs in these locations** to require both title and location matches before AI analysis or saving. Location aliases recognize United States/US/USA, Taiwan/TW, and United Kingdom/UK; cities are not inferred to countries. See [automation filtering](wiki/automations.md#how-do-i-set-up-filters-so-the-automation-returns-good-results).
+
 More job board sources are on the way. Discovered jobs are surfaced for review — accept the ones you like to promote them into your job tracker, or dismiss the rest.
 
 ### LaTeX Resume Tailoring

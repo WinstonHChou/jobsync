@@ -136,6 +136,7 @@ export function AutomationList({
           const atsCompanies: { name: string; token: string }[] =
             ats?.companies ?? [];
           const atsTitles: string[] = ats?.targetTitles ?? [];
+          const atsTitleFilters: string[] = ats?.titleContains ?? [];
           const atsLocations: string[] = ats?.locations ?? [];
           const atsKeywords: string[] = ats?.keywords ?? [];
           const atsTopK: number = ats?.topK ?? APP_CONSTANTS.MAX_JOBS_PER_RUN;
@@ -202,6 +203,7 @@ export function AutomationList({
                       )}
                     </div>
                     <div className="flex flex-wrap gap-x-6 gap-y-1">
+                      {!!atsTitleFilters.length && <span><span className="font-medium text-foreground">Strict titles:</span>{" "}{atsTitleFilters.join(" OR ")} ({ats?.titleMatchMode === "words" ? "whole word/phrase" : "partial text"})</span>}
                       <span>
                         <span className="font-medium text-foreground">
                           Titles:
