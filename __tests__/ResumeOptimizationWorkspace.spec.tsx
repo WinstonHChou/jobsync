@@ -23,6 +23,28 @@ beforeEach(() => {
 afterEach(() => vi.restoreAllMocks());
 const renderWorkspace = () => render(<ResumeOptimizationWorkspace jobId="job-1" title="Engineer" company="Acme" />);
 describe("LaTeX optimization review", () => {
+  it("saves a graduation override through factual review and invalidates the old PDF", async () => {
+    const run = makeRun({ artifact: { hash: "c".repeat(64), pages: 1, warnings: [] } });
+    const original = "\\IfBooleanTF{#1}{Sep 2026 --}{Expected Aug 2027}", graduationId = "e".repeat(24);
+    run.data.catalog.entries.push({ macro: "Masters", file: "education.tex", starred: true, label: "Latest University" });
+    run.data.catalog.blocks.push({ id: graduationId, file: "education.tex", start: 0, end: original.length, original, kind: "metadata", macro: "Masters", label: "Latest University · dates", active: true });
+    run.data.layout = [{ id: "education", title: "Education", entries: [{ macro: "Masters", starred: false }] }, ...run.data.layout];
+    run.data.catalog.sections = run.data.layout;
+    history = [run];
+    vi.mocked(actions.saveResumeOptimizationDraft).mockImplementation(async (input) => {
+      history = [{ ...run, revision: 2, data: { ...run.data, layout: input.layout, edits: input.edits, artifact: undefined, candidate: undefined } }];
+      return { success: true, run: history[0] };
+    });
+    renderWorkspace(); await screen.findByText("PDF preview ready");
+    fireEvent.click(screen.getByRole("button", { name: "Internship: Dec 2027" }));
+    fireEvent.click(screen.getByRole("button", { name: "Apply graduation date" }));
+    await screen.findByText("Unsaved changes");
+    expect(screen.getByText("No PDF preview")).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText(/I checked the factual claims/));
+    fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
+    await screen.findByRole("button", { name: "Save draft" });
+    expect(actions.saveResumeOptimizationDraft).toHaveBeenCalledWith(expect.objectContaining({ edits: [expect.objectContaining({ blockId: graduationId, replacement: original.replace("Aug", "Dec"), accepted: true, factsConfirmed: true })] }));
+  });
   it("lets the user stop analysis and aborts the in-flight stage", async () => {
     let stageSignal: AbortSignal | undefined;
     vi.mocked(requestResumeAnalysis).mockImplementation((_run, _stage, signal) => {

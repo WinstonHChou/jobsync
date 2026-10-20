@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { PdfPreviewPane } from "@/components/pdf-export/PdfPreviewPane";
 import { factsChanged } from "@/lib/resume-repo/facts";
 import { requestResumeAnalysis } from "@/lib/resume-repo/analysis-client";
+import { EducationDateEditor } from "./EducationDateEditor";
 import type { ResumeOptimizationView, ResumeLayoutSection, ResumeEdit } from "@/models/resumeOptimization.model";
 import {
   getResumeOptimizationSetup, listResumeOptimizationRuns, createResumeOptimization,
@@ -109,6 +110,7 @@ export function ResumeOptimizationWorkspace({ jobId, title, company }: { jobId: 
     {run && <>
       <div className="flex flex-wrap items-center gap-3 rounded-lg border p-4 text-sm"><span>Baseline: <strong>{run.data.baseline?.score ?? "—"}</strong></span><span>Candidate: <strong>{!dirty ? run.data.candidate?.score ?? "—" : "—"}</strong></span><span>{run.data.provider} · {run.data.model}</span><span className="text-muted-foreground">Scores guide review; confirm content and presentation.</span></div>
       <details className="text-sm"><summary className="cursor-pointer text-muted-foreground">Job posting captured for this draft · {new Date(run.createdAt).toLocaleDateString()}</summary><pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap">{run.data.jobText}</pre></details>
+      <EducationDateEditor key={run.id} catalog={run.data.catalog} layout={layout} edits={edits} disabled={disabled} onApply={(edit) => setEdits((current) => [...current.filter((item) => item.blockId !== edit.blockId), edit])} />
       <div className="grid min-w-0 gap-5 @5xl/main:grid-cols-[minmax(250px,0.8fr)_minmax(320px,1.2fr)_minmax(320px,1fr)] [&>section]:min-w-0">
         <section className="space-y-3"><h2 className="font-semibold">Structure and selected entries</h2>
           {layout.map((section, index) => <div key={section.id} className="space-y-3 rounded-lg border p-3">

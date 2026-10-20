@@ -25,6 +25,12 @@ The structure panel lets you rename or move sections, reorder entries within a s
 
 **Save draft** persists decisions. Changing the draft invalidates its PDF and candidate score. **Reload** replaces unsaved screen edits with the saved version. History retains earlier drafts and committed variants.
 
+## How do I change my expected graduation date for a job?
+
+After generating suggestions, use **Education graduation date**. The latest included degree is selected first; you can choose another included degree explicitly. Select **Full-time: Aug 2027** for `Expected Aug 2027`, **Internship: Dec 2027** for `Expected Dec 2027`, or type a custom date. Click **Apply graduation date**, then confirm its factual claims in **Content review** before saving or building.
+
+The change belongs to the selected job draft and becomes part of that job branch when committed. The adapter preserves the earlier degree, the opposite starred/unstarred date, and the start of an existing date range. Rebuild and re-score after a date change. Generating AI suggestions comes before manual edits; matching keeps its original baseline for comparison.
+
 ## How do I preview, score, and export the result?
 
 Select **Build preview**. JobSync compiles the selected source with your LaTeX template. Shared content changes also trigger a CV build when `CV_Winston.tex` exists. Review warnings, page count, and the PDF; successful compilation does not guarantee good layout.

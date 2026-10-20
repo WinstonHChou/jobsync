@@ -4,6 +4,7 @@ export interface ResumeLayoutSection { id: string; title: string; entries: Resum
 export interface ResumeSourceBlock {
   id: string; file: string; start: number; end: number; original: string;
   label: string; kind: "bullet" | "metadata" | "skills"; macro: string;
+  field?: "educationDates";
   active: boolean; variant?: "starred" | "unstarred";
 }
 export interface ResumeCatalog {

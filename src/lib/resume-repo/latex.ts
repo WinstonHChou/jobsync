@@ -1,32 +1,11 @@
 import { createHash } from "node:crypto";
 import type { ResumeCatalog, ResumeFiles, ResumeLayoutSection, ResumeSourceBlock, ResumeEdit } from "@/models/resumeOptimization.model";
 export { factsChanged } from "./facts";
+import { group, maskComments } from "./syntax";
+export { group, maskComments } from "./syntax";
 
 export const hash = (value: string | Buffer) => createHash("sha256").update(value).digest("hex");
 export const sourceHash = (files: ResumeFiles) => hash(JSON.stringify(Object.entries(files).sort(([a], [b]) => a.localeCompare(b))));
-export function maskComments(source: string): string {
-  return source.replace(/(^|\n)([^\n]*)/g, (_, prefix: string, line: string) => {
-    for (let i = 0; i < line.length; i++) {
-      if (line[i] !== "%") continue;
-      let slashes = 0; for (let j = i - 1; j >= 0 && line[j] === "\\"; j--) slashes++;
-      if (!(slashes % 2)) return prefix + line.slice(0, i) + " ".repeat(line.length - i);
-    }
-    return prefix + line;
-  });
-}
-export function group(source: string, position: number, opener = "{") {
-  const closer = opener === "{" ? "}" : "]";
-  while (/\s/.test(source[position] ?? "") && position < source.length) position++;
-  if (source[position] !== opener) throw new Error("Unsupported LaTeX argument structure");
-  const start = position + 1;
-  let depth = 1;
-  for (let i = start; i < source.length; i++) {
-    if (source[i] === "\\") { i++; continue; }
-    if (source[i] === opener) depth++;
-    if (source[i] === closer && --depth === 0) return { start, end: i, next: i + 1, text: source.slice(start, i) };
-  }
-  throw new Error("Unbalanced LaTeX argument");
-}
 function macros(files: ResumeFiles) {
   const result: { name: string; file: string; spec: string; start: number; end: number }[] = [];
   for (const [file, raw] of Object.entries(files)) {
@@ -75,10 +54,10 @@ export function readCatalog(files: ResumeFiles, entrypoint: string): ResumeCatal
       const yes = group(source, argument.next), no = group(source, yes.next);
       conditions.push({ start: yes.start, end: yes.end, starred: true }, { start: no.start, end: no.end, starred: false });
     }
-    const add = (start: number, end: number, kind: ResumeSourceBlock["kind"], label: string) => {
+    const add = (start: number, end: number, kind: ResumeSourceBlock["kind"], label: string, field?: ResumeSourceBlock["field"]) => {
       const condition = conditions.find((range) => start >= range.start && end <= range.end);
       const active = Boolean(uses.get(definition.name)?.size) && (!condition || uses.get(definition.name)!.has(condition.starred));
-      blocks.push({ id: hash(`${definition.file}:${definition.name}:${start}:${raw.slice(start, end)}`).slice(0, 24), file: definition.file, start, end, original: raw.slice(start, end), label: label === definition.name ? entryLabel(definition, files) : label, kind, macro: definition.name, active, ...(condition ? { variant: condition.starred ? "starred" : "unstarred" } : {}) });
+      blocks.push({ id: hash(`${definition.file}:${definition.name}:${start}:${raw.slice(start, end)}`).slice(0, 24), file: definition.file, start, end, original: raw.slice(start, end), label: label === definition.name ? entryLabel(definition, files) : label, kind, macro: definition.name, active, ...(field ? { field } : {}), ...(condition ? { variant: condition.starred ? "starred" : "unstarred" } : {}) });
     };
     const body = source.slice(definition.start, definition.end);
     for (const match of body.matchAll(/\\resumeItem\b\s*/g)) {
@@ -94,7 +73,7 @@ export function readCatalog(files: ResumeFiles, entrypoint: string): ResumeCatal
       while (/\s/.test(source[cursor] ?? "") && cursor < source.length) cursor++;
       if (source[cursor] === "[") { const argument = group(source, cursor, "["); add(argument.start, argument.end, "metadata", `${entryLabel(definition, files)} · technology labels`); cursor = argument.next; }
       const final = group(source, cursor);
-      add(final.start, final.end, "metadata", `${entryLabel(definition, files)} · ${definition.file === "education.tex" ? "dates" : "location"}`);
+      add(final.start, final.end, "metadata", `${entryLabel(definition, files)} · ${definition.file === "education.tex" ? "dates" : "location"}`, definition.file === "education.tex" ? "educationDates" : undefined);
     }
     if (definition.name.startsWith("skills")) {
       for (const match of body.matchAll(/\\textbf\s*/g)) {
